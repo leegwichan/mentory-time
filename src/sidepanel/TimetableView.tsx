@@ -5,7 +5,7 @@ import type { NormalizedEntry } from '../lib/types'
 const DAY_LABELS = ['월', '화', '수', '목', '금', '토', '일']
 const DAY_SHORT = ['일', '월', '화', '수', '목', '금', '토']
 const SLOT_START = 9 * 60   // 09:00
-const SLOT_END = 22 * 60    // 22:00 (exclusive)
+const SLOT_END = 23 * 60    // 23:00 (exclusive)
 
 // 해당 날짜가 속한 주의 월요일 00:00 반환
 function getWeekStart(date: Date): Date {
@@ -66,7 +66,7 @@ function formatHM(minutes: number): string {
   return `${h}:${m}`
 }
 
-// 09:00 ~ 21:30 사이 30분 슬롯 목록
+// 09:00 ~ 22:30 사이 30분 슬롯 목록
 const TIME_ROWS: number[] = []
 for (let m = SLOT_START; m < SLOT_END; m += 30) TIME_ROWS.push(m)
 
@@ -95,7 +95,17 @@ function getSlotEntries(
 }
 
 export default function TimetableView() {
-  const { entries } = useStore()
+  const { entries, previewEntry, pendingQustnrSn, activatePreview, clearPreview } = useStore()
+  const [alreadyRegisteredMsg, setAlreadyRegisteredMsg] = useState(false)
+
+  const handleSimulate = async () => {
+    if (!pendingQustnrSn) return
+    const isAlready = await activatePreview(pendingQustnrSn)
+    if (isAlready) {
+      setAlreadyRegisteredMsg(true)
+      setTimeout(() => setAlreadyRegisteredMsg(false), 3000)
+    }
+  }
   const [weekStart, setWeekStart] = useState(() => getWeekStart(new Date()))
   const [autoNavigated, setAutoNavigated] = useState(false)
   const [popover, setPopover] = useState<PopoverState | null>(null)
@@ -115,26 +125,28 @@ export default function TimetableView() {
     setAutoNavigated(true)
   }, [entries, autoNavigated])
 
+  // 미리보기 활성 시 해당 주로 자동 이동
+  const previewData = useMemo(() => {
+    if (!previewEntry) return null
+    const date = new Date(previewEntry.lectureDate)
+    if (isNaN(date.getTime())) return null
+    const raw = date.getDay()
+    const dayIndex = raw === 0 ? 6 : raw - 1
+    const [sh = 0, sm = 0] = previewEntry.lectureStartTime.split(':').map(Number)
+    const [eh = 0, em = 0] = previewEntry.lectureEndTime.split(':').map(Number)
+    return { dayIndex, startMin: sh * 60 + sm, endMin: eh * 60 + em, weekStart: getWeekStart(date) }
+  }, [previewEntry])
+
+  useEffect(() => {
+    if (previewData) setWeekStart(previewData.weekStart)
+  }, [previewData])
+
   const slots = useMemo(() => buildSlots(entries, weekStart), [entries, weekStart])
 
   const prevWeek = () => setWeekStart((w) => addDays(w, -7))
   const nextWeek = () => setWeekStart((w) => addDays(w, 7))
 
-  // 이번 주에 데이터가 있는 시간 범위만 표시 (없으면 전체)
-  const activeRows = useMemo(() => {
-    const used = new Set<number>()
-    slots.forEach((_, key) => {
-      const min = parseInt(key.split('-')[1])
-      used.add(min)
-    })
-    if (used.size === 0) return TIME_ROWS
-    const minMin = Math.min(...used)
-    const maxMin = Math.max(...used)
-    // 앞뒤로 30분 여유
-    return TIME_ROWS.filter((m) => m >= minMin - 30 && m <= maxMin + 30)
-  }, [slots])
-
-  const rows = activeRows.length > 0 ? activeRows : TIME_ROWS
+  const rows = TIME_ROWS
 
   return (
     <div className="flex flex-col h-full">
@@ -155,17 +167,42 @@ export default function TimetableView() {
         </button>
       </div>
 
-      {/* 범례 */}
-      <div className="flex items-center gap-3 px-3 py-1.5 border-b border-gray-100 text-[10px] text-gray-500">
-        <span className="flex items-center gap-1">
-          <span className="inline-block w-3 h-3 rounded-sm bg-[#C8E6C9]" /> 1개
-        </span>
-        <span className="flex items-center gap-1">
-          <span className="inline-block w-3 h-3 rounded-sm bg-[#FFF9C4]" /> 2개 겹침
-        </span>
-        <span className="flex items-center gap-1">
-          <span className="inline-block w-3 h-3 rounded-sm bg-[#FFCDD2]" /> 3개 이상
-        </span>
+      {/* 범례 + 시뮬레이션 버튼 */}
+      <div className="flex items-center justify-between px-3 py-1.5 border-b border-gray-100">
+        {/* 좌측: 시뮬레이션 컨트롤 */}
+        <div className="flex items-center">
+          {alreadyRegisteredMsg ? (
+            <span className="text-[10px] text-amber-600 font-medium">이미 접수완료된 특강입니다</span>
+          ) : pendingQustnrSn && !previewEntry ? (
+            <button
+              onClick={handleSimulate}
+              className="px-2.5 py-1 bg-orange-500 text-white text-xs font-bold rounded hover:bg-orange-600 transition-colors"
+            >
+              시뮬레이션
+            </button>
+          ) : previewEntry ? (
+            <button
+              onClick={clearPreview}
+              className="px-2.5 py-1 text-xs font-medium bg-orange-100 text-orange-400 rounded hover:bg-orange-200 transition-colors"
+            >
+              반영 해제
+            </button>
+          ) : (
+            <div className="h-5" />
+          )}
+        </div>
+        {/* 우측: 범례 */}
+        <div className="flex items-center gap-2.5 text-[10px] text-gray-500">
+          <span className="flex items-center gap-1">
+            <span className="inline-block w-3 h-3 rounded-sm bg-[#C8E6C9]" /> 1개
+          </span>
+          <span className="flex items-center gap-1">
+            <span className="inline-block w-3 h-3 rounded-sm bg-[#FFF9C4]" /> 2개 겹침
+          </span>
+          <span className="flex items-center gap-1">
+            <span className="inline-block w-3 h-3 rounded-sm bg-[#FFCDD2]" /> 3개 이상
+          </span>
+        </div>
       </div>
 
       {/* 요일 헤더 (고정) */}
@@ -192,11 +229,19 @@ export default function TimetableView() {
                   </td>
                   {Array.from({ length: 7 }, (_, dayIndex) => {
                     const count = slots.get(`${dayIndex}-${min}`)?.length ?? 0
+                    const isPreview =
+                      previewData !== null &&
+                      weekStart.getTime() === previewData.weekStart.getTime() &&
+                      dayIndex === previewData.dayIndex &&
+                      min >= previewData.startMin &&
+                      min < previewData.endMin
+                    const isPreviewFirst = isPreview && min === previewData!.startMin
+                    const isPreviewLast = isPreview && min === previewData!.endMin - 30
                     return (
                       <td
                         key={dayIndex}
                         onClick={
-                          count > 0
+                          count > 0 && !isPreview
                             ? () =>
                                 setPopover({
                                   dayIndex,
@@ -207,7 +252,15 @@ export default function TimetableView() {
                         }
                         className={`border-l border-gray-50 ${
                           min % 60 === 0 ? 'border-t border-gray-100' : ''
-                        } ${overlapColor(count)} ${count > 0 ? 'cursor-pointer hover:opacity-70' : ''}`}
+                        } ${isPreview ? overlapColor(count + 1) : overlapColor(count)} ${count > 0 && !isPreview ? 'cursor-pointer hover:opacity-70' : ''}`}
+                        style={isPreview ? {
+                          boxShadow: [
+                            'inset 2px 0 0 0 #60a5fa',
+                            'inset -2px 0 0 0 #60a5fa',
+                            ...(isPreviewFirst ? ['inset 0 2px 0 0 #60a5fa'] : []),
+                            ...(isPreviewLast ? ['inset 0 -2px 0 0 #60a5fa'] : []),
+                          ].join(', '),
+                        } : undefined}
                       />
                     )
                   })}

@@ -7,11 +7,32 @@ type Tab = 'list' | 'timetable'
 
 export default function App() {
   const [activeTab, setActiveTab] = useState<Tab>('list')
-  const { loadCache, fetchAll } = useStore()
+  const { loadCache, fetchAll, setPendingDetail, pendingQustnrSn } = useStore()
 
   useEffect(() => {
     loadCache()
-  }, [loadCache])
+
+    // 사이드 패널이 새로 열렸을 때 background에서 pending detail 조회
+    chrome.runtime.sendMessage({ type: 'GET_PENDING_DETAIL' })
+      .then((res: { qustnrSn?: string } | null) => {
+        if (res?.qustnrSn) setPendingDetail(res.qustnrSn)
+      })
+      .catch(() => {})
+
+    // 사이드 패널이 이미 열려있을 때 실시간 메시지 수신
+    const handler = (message: { type: string; payload?: { qustnrSn?: string } | null }) => {
+      if (message.type === 'DETAIL_PAGE_DETECTED' && message.payload?.qustnrSn) {
+        setPendingDetail(message.payload.qustnrSn)
+      } else if (message.type === 'DETAIL_PAGE_CLEARED') {
+        setPendingDetail(null)
+      } else if (message.type === 'HISTORY_PAGE_DETECTED') {
+        fetchAll()
+      }
+    }
+    chrome.runtime.onMessage.addListener(handler)
+    return () => chrome.runtime.onMessage.removeListener(handler)
+  }, [loadCache, fetchAll, setPendingDetail])
+
 
   return (
     <div className="flex flex-col h-screen bg-white text-gray-900 text-sm">
@@ -41,18 +62,21 @@ export default function App() {
         </button>
         <button
           onClick={() => setActiveTab('timetable')}
-          className={`flex-1 py-2 text-xs font-semibold transition-colors ${
+          className={`flex-1 py-2 text-xs font-semibold transition-colors relative ${
             activeTab === 'timetable'
               ? 'text-brand-600 border-b-2 border-brand-600'
               : 'text-gray-400 hover:text-gray-600'
           }`}
         >
           시간표
+          {pendingQustnrSn && (
+            <span className="absolute top-1.5 ml-0.5 w-1.5 h-1.5 rounded-full bg-blue-500 inline-block" />
+          )}
         </button>
       </nav>
 
       {/* 콘텐츠 */}
-      <main className="flex-1 overflow-y-auto">
+      <main className="flex-1 overflow-hidden">
         {activeTab === 'list' ? <ListView /> : <TimetableView />}
       </main>
     </div>
