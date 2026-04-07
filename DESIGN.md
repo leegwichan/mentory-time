@@ -192,7 +192,7 @@ const timeMatch = timeText.match(/(\d{2}:\d{2})시\s*~\s*(\d{2}:\d{2})시/);
 // 모집명
 const lectureName = document.querySelector('.group .c').textContent.trim();
 // 작성자
-const authorDiv = document.querySelectorAll('.half_w')[2]  // 3번째 half_w
+const authorDiv = document.querySelectorAll('.half_w')[3]  // 4번째 half_w (실제 HTML 기준)
   .querySelector('.group .c');
 ```
 
