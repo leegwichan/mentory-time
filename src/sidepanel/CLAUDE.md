@@ -2,14 +2,15 @@
 
 ## 구조
 ```
-App.tsx          ← 탭 전환 (접수목록 | 시간표)
-ListView.tsx     ← F1(날짜 정렬) + F2(필터) + F3(링크)  [추가 예정]
-TimetableView.tsx ← F4(주간 시간표) + F5(클릭 팝오버) + F6(미리보기) [추가 예정]
+App.tsx           ← 탭 전환 (접수목록 | 시간표)
+store.ts          ← Zustand 상태 + fetch 오케스트레이션 + chrome.storage 접근
+ListView.tsx      ← 날짜 정렬 + 필터 + 상세 링크
+TimetableView.tsx ← 주간 시간표 + 슬롯 클릭 팝오버 + 미리보기  [추가 예정]
 ```
 
 ## 상태 관리
-Zustand store는 `src/sidepanel/store.ts` 에 정의.  
-`chrome.storage`를 직접 읽지 말고 background 메시지 응답으로만 데이터 수신.
+Zustand store(`store.ts`)가 fetch 오케스트레이션과 `chrome.storage` 접근을 직접 담당.  
+MV3 service worker에 `DOMParser`가 없어 사이드 패널에서 직접 fetch+파싱하는 구조로 확정.
 
 ## 스타일
 - Tailwind CSS 유틸리티 클래스만 사용
