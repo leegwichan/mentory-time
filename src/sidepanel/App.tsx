@@ -1,34 +1,68 @@
+import { useState } from 'react'
+
+type Tab = 'list' | 'timetable'
+
 export default function App() {
+  const [activeTab, setActiveTab] = useState<Tab>('list')
+
   return (
-    <div className="flex flex-col h-screen bg-white text-gray-900">
+    <div className="flex flex-col h-screen bg-white text-gray-900 text-sm">
       {/* 헤더 */}
-      <header className="flex items-center justify-between px-4 py-3 border-b border-gray-200">
-        <span className="font-bold text-base">MentoryTime</span>
+      <header className="flex items-center justify-between px-4 py-2.5 bg-brand-50 border-b border-brand-100">
+        <span className="font-bold text-brand-700 tracking-tight">MentoryTime</span>
         <button
-          className="text-gray-500 hover:text-gray-800 text-sm"
+          className="text-brand-600 hover:text-brand-700 text-base leading-none"
           title="새로고침"
         >
           ↺
         </button>
       </header>
 
-      {/* 탭 */}
-      <nav className="flex border-b border-gray-200">
-        <button className="flex-1 py-2 text-sm font-medium border-b-2 border-blue-500 text-blue-600">
+      {/* 탭바 */}
+      <nav className="flex border-b border-brand-100">
+        <button
+          onClick={() => setActiveTab('list')}
+          className={`flex-1 py-2 text-xs font-semibold transition-colors ${
+            activeTab === 'list'
+              ? 'text-brand-600 border-b-2 border-brand-600'
+              : 'text-gray-400 hover:text-gray-600'
+          }`}
+        >
           접수 목록
         </button>
-        <button className="flex-1 py-2 text-sm font-medium text-gray-500 hover:text-gray-700">
+        <button
+          onClick={() => setActiveTab('timetable')}
+          className={`flex-1 py-2 text-xs font-semibold transition-colors ${
+            activeTab === 'timetable'
+              ? 'text-brand-600 border-b-2 border-brand-600'
+              : 'text-gray-400 hover:text-gray-600'
+          }`}
+        >
           시간표
         </button>
       </nav>
 
       {/* 콘텐츠 */}
-      <main className="flex-1 overflow-y-auto p-4">
-        <p className="text-sm text-gray-400 text-center mt-8">
-          SW마에스트로 접수내역 페이지를 방문하면<br />
-          데이터가 자동으로 불러와집니다.
-        </p>
+      <main className="flex-1 overflow-y-auto">
+        {activeTab === 'list' ? <ListView /> : <TimetableView />}
       </main>
+    </div>
+  )
+}
+
+function ListView() {
+  return (
+    <div className="flex flex-col items-center justify-center h-full text-gray-400 text-xs">
+      <p>SW마에스트로 접수내역 페이지를 방문하면</p>
+      <p>데이터가 자동으로 불러와집니다.</p>
+    </div>
+  )
+}
+
+function TimetableView() {
+  return (
+    <div className="flex flex-col items-center justify-center h-full text-gray-400 text-xs">
+      <p>시간표 준비 중</p>
     </div>
   )
 }
