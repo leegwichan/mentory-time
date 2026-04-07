@@ -12,6 +12,8 @@ interface StoreState {
   progress: { current: number; total: number } | null
   error: string | null
   lastFetched: number | null
+  hideCancel: boolean
+  toggleHideCancel: () => void
   loadCache: () => Promise<void>
   fetchAll: () => Promise<void>
 }
@@ -22,6 +24,8 @@ export const useStore = create<StoreState>((set) => ({
   progress: null,
   error: null,
   lastFetched: null,
+  hideCancel: false,
+  toggleHideCancel: () => set((s) => ({ hideCancel: !s.hideCancel })),
 
   loadCache: async () => {
     const cached = await loadStorage()
