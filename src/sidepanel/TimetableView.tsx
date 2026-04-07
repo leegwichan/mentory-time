@@ -50,7 +50,7 @@ function buildSlots(entries: NormalizedEntry[], weekStart: Date) {
 function overlapColor(count: number): string {
   if (count === 0) return ''
   if (count === 1) return 'bg-[#B7DEB8]'
-  if (count === 2) return 'bg-[#FFF59D]'
+  if (count === 2) return 'bg-[#FFCC99]'
   return 'bg-[#F7B3B6]'
 }
 
@@ -178,9 +178,9 @@ export default function TimetableView() {
       {/* 범례 + 시뮬레이션 버튼 */}
       <div className="flex items-center justify-between px-3 py-1.5 border-b border-gray-100">
         {/* 좌측: 시뮬레이션 컨트롤 */}
-        <div className="flex items-center">
+        <div className="flex items-center h-7">
           {alreadyRegisteredMsg ? (
-            <span className="text-[10px] text-amber-600 font-medium">이미 접수완료된 특강입니다</span>
+            <span className="text-xs text-amber-600 font-medium">이미 접수완료된 특강입니다</span>
           ) : pendingQustnrSn && !previewEntry ? (
             <button
               onClick={handleSimulate}
@@ -205,7 +205,7 @@ export default function TimetableView() {
             <span className="inline-block w-3 h-3 rounded-sm bg-[#B7DEB8]" /> 1개
           </span>
           <span className="flex items-center gap-1">
-            <span className="inline-block w-3 h-3 rounded-sm bg-[#FFF59D]" /> 2개 겹침
+            <span className="inline-block w-3 h-3 rounded-sm bg-[#FFCC99]" /> 2개 겹침
           </span>
           <span className="flex items-center gap-1">
             <span className="inline-block w-3 h-3 rounded-sm bg-[#F7B3B6]" /> 3개 이상
@@ -213,21 +213,27 @@ export default function TimetableView() {
         </div>
       </div>
 
-      {/* 요일 헤더 (고정) */}
-      <div className="flex text-[10px] border-b border-gray-100">
-        <div className="w-10 flex-shrink-0" />
-        {DAY_LABELS.map((label, i) => (
-          <div key={i} className={`flex-1 py-1 text-center font-semibold text-gray-500 ${i === todayIndex ? 'border-b-2 border-brand-600' : ''}`}>
-            {label}
-          </div>
-        ))}
-      </div>
-
       {/* 시간표 그리드 + 팝오버 컨테이너 */}
       <div className="flex-1 relative overflow-hidden">
         {/* 스크롤 영역 */}
         <div className="h-full overflow-auto">
-          <table className="w-full text-[10px] border-collapse">
+          <table className="w-full text-[10px] border-collapse table-fixed">
+            {/* 요일 헤더 (sticky) */}
+            <thead className="sticky top-0 z-10 bg-white">
+              <tr className="border-b border-gray-100">
+                <td className="w-10" />
+                {DAY_LABELS.map((label, i) => {
+                  const date = addDays(weekStart, i)
+                  const isToday = i === todayIndex
+                  return (
+                    <td key={i} className={`py-0.5 text-center ${isToday ? 'border-b-2 border-brand-600' : ''}`}>
+                      <div className={`text-[10px] font-semibold pb-0.5 ${isToday ? 'text-brand-600' : 'text-gray-400'}`}>{label}</div>
+                      <div className={`text-[11px] font-bold pt-0.5 border-t border-gray-100 ${isToday ? 'text-brand-600' : 'text-gray-700'}`}>{date.getDate()}</div>
+                    </td>
+                  )
+                })}
+              </tr>
+            </thead>
             <tbody>
               {rows.map((min) => (
                 <tr key={min} className="h-5">
@@ -256,9 +262,9 @@ export default function TimetableView() {
                                 })
                             : undefined
                         }
-                        className={`border-l border-gray-50 ${
+                        className={`border-l border-gray-100 ${
                           min % 60 === 0 ? 'border-t border-gray-200' : 'border-t border-gray-100'
-                        } ${isPreview ? overlapColor(count + 1) : overlapColor(count)} ${count > 0 && !isPreview ? 'cursor-pointer hover:opacity-70' : ''}`}
+                        } ${isPreview ? overlapColor(count + 1) : overlapColor(count) || 'bg-gray-50'} ${count > 0 && !isPreview ? 'cursor-pointer hover:opacity-70' : ''}`}
                         style={isPreview ? { boxShadow: 'inset 3px 0 0 0 #4B5563' } : undefined}
                       />
                     )
