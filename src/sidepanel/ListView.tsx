@@ -1,7 +1,14 @@
+import { useState } from 'react'
 import { useStore } from './store'
 import type { NormalizedEntry } from '../lib/types'
 
 const DAY_LABELS = ['일', '월', '화', '수', '목', '금', '토']
+
+function getToday(): Date {
+  const d = new Date()
+  d.setHours(0, 0, 0, 0)
+  return d
+}
 
 function groupByDate(entries: NormalizedEntry[]): [string, NormalizedEntry[]][] {
   const map = new Map<string, NormalizedEntry[]>()
@@ -19,6 +26,7 @@ function formatDateHeader(entry: NormalizedEntry): string {
 
 export default function ListView() {
   const { entries, loading, progress, error, fetchAll, hideCancel, toggleHideCancel } = useStore()
+  const [showPast, setShowPast] = useState(false)
 
   if (loading) {
     return (
@@ -61,37 +69,39 @@ export default function ListView() {
     )
   }
 
-  const filtered = hideCancel ? entries.filter((e) => e.status === '접수완료') : entries
+  const today = getToday()
+  const filtered = entries
+    .filter((e) => showPast || e.lectureDateObj >= today)
+    .filter((e) => !hideCancel || e.status === '접수완료')
   const groups = groupByDate(filtered)
 
   return (
     <div>
-      {/* F2: 필터 토글 */}
-      <div className="flex items-center gap-2 px-4 py-2 border-b border-gray-100 bg-gray-50">
-        <span className="text-[10px] text-gray-400">필터</span>
-        <button
-          onClick={toggleHideCancel}
-          className={`text-[10px] px-2 py-0.5 rounded-full border transition-colors ${
-            !hideCancel
-              ? 'bg-brand-600 text-white border-brand-600'
-              : 'bg-white text-gray-400 border-gray-200'
-          }`}
-        >
-          접수완료
-        </button>
+      {/* 필터 바 */}
+      <div className="flex items-center gap-2 px-4 py-2 border-b border-gray-100 bg-gray-50 flex-wrap">
         <button
           onClick={toggleHideCancel}
           className={`text-[10px] px-2 py-0.5 rounded-full border transition-colors ${
             hideCancel
-              ? 'bg-white text-gray-400 border-gray-200 line-through'
+              ? 'bg-brand-600 text-white border-brand-600'
               : 'bg-white text-gray-500 border-gray-200'
           }`}
         >
-          접수취소 포함
+          접수완료만
+        </button>
+        <button
+          onClick={() => setShowPast((v) => !v)}
+          className={`text-[10px] px-2 py-0.5 rounded-full border transition-colors ${
+            showPast
+              ? 'bg-brand-600 text-white border-brand-600'
+              : 'bg-white text-gray-500 border-gray-200'
+          }`}
+        >
+          이전 기록 포함
         </button>
       </div>
 
-      {/* F1: 날짜 그룹 + F3: 상세 링크 */}
+      {/* 날짜 그룹 목록 */}
       {groups.length === 0 ? (
         <div className="flex items-center justify-center h-32 text-xs text-gray-400">
           표시할 항목이 없습니다.
@@ -99,12 +109,9 @@ export default function ListView() {
       ) : (
         groups.map(([date, groupEntries]) => (
           <div key={date}>
-            {/* 날짜 그룹 헤더 */}
             <div className="px-4 py-1.5 bg-gray-50 border-b border-gray-100 text-[10px] font-semibold text-gray-500 tracking-wide">
               {formatDateHeader(groupEntries[0])}
             </div>
-
-            {/* 항목 목록 */}
             <div className="divide-y divide-gray-100">
               {groupEntries.map((entry) => (
                 <a

@@ -49,7 +49,7 @@ export const useStore = create<StoreState>((set) => ({
         set({ progress: { current: page, total: totalPages } })
       }
 
-      allEntries.sort((a, b) => b.lectureDateObj.getTime() - a.lectureDateObj.getTime())
+      allEntries.sort((a, b) => a.lectureDateObj.getTime() - b.lectureDateObj.getTime())
 
       await saveEntries(allEntries, totalPages)
       set({ entries: allEntries, loading: false, progress: null, lastFetched: Date.now() })
