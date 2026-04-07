@@ -84,7 +84,7 @@ export default function ListView() {
           className={`text-[10px] px-2 py-0.5 rounded-full border transition-colors ${
             !hideCancel
               ? 'bg-brand-600 text-white border-brand-600'
-              : 'bg-white text-gray-500 border-gray-200'
+              : 'bg-white text-gray-500 border-gray-200 hover:border-gray-400 hover:text-gray-700'
           }`}
         >
           취소 포함
@@ -94,7 +94,7 @@ export default function ListView() {
           className={`text-[10px] px-2 py-0.5 rounded-full border transition-colors ${
             showPast
               ? 'bg-brand-600 text-white border-brand-600'
-              : 'bg-white text-gray-500 border-gray-200'
+              : 'bg-white text-gray-500 border-gray-200 hover:border-gray-400 hover:text-gray-700'
           }`}
         >
           이전 기록 포함
@@ -133,8 +133,6 @@ export default function ListView() {
                     {entry.author} · {entry.lectureStartTime.slice(0, 5)}~{entry.lectureEndTime.slice(0, 5)}
                   </p>
                   <div className="flex items-center gap-1.5 mt-1">
-                    <span className="text-[10px] text-gray-400">{entry.category}</span>
-                    <span className="text-[10px] text-gray-300">·</span>
                     <span
                       className={`text-[10px] px-1.5 py-0.5 rounded-full ${
                         entry.status === '접수완료'
@@ -144,6 +142,8 @@ export default function ListView() {
                     >
                       {entry.status}
                     </span>
+                    <span className="text-[10px] text-gray-300">·</span>
+                    <span className="text-[10px] text-gray-400">{entry.category}</span>
                   </div>
                 </a>
               ))}
