@@ -78,23 +78,23 @@ export default function ListView() {
   return (
     <div className="h-full flex flex-col overflow-hidden">
       {/* 필터 바 */}
-      <div className="flex items-center gap-2 px-4 py-2 border-b border-gray-100 bg-gray-50 flex-wrap">
+      <div className="flex items-center gap-2 px-4 py-2 border-b border-gray-200 bg-white flex-wrap">
         <button
           onClick={toggleHideCancel}
           className={`text-[10px] px-2 py-0.5 rounded-full border transition-colors ${
             !hideCancel
               ? 'bg-brand-600 text-white border-brand-600'
-              : 'bg-white text-gray-500 border-gray-200 hover:border-gray-400 hover:text-gray-700'
+              : 'bg-gray-50 text-gray-500 border-gray-300 hover:border-gray-400 hover:text-gray-700'
           }`}
         >
-          취소 포함
+          접수 취소 포함
         </button>
         <button
           onClick={() => setShowPast((v) => !v)}
           className={`text-[10px] px-2 py-0.5 rounded-full border transition-colors ${
             showPast
               ? 'bg-brand-600 text-white border-brand-600'
-              : 'bg-white text-gray-500 border-gray-200 hover:border-gray-400 hover:text-gray-700'
+              : 'bg-gray-50 text-gray-500 border-gray-300 hover:border-gray-400 hover:text-gray-700'
           }`}
         >
           이전 기록 포함
@@ -110,7 +110,7 @@ export default function ListView() {
       ) : (
         groups.map(([date, groupEntries]) => (
           <div key={date}>
-            <div className="px-4 py-1.5 bg-gray-50 border-b border-gray-100 text-xs font-semibold text-gray-700 tracking-wide">
+            <div className="px-4 py-1.5 bg-gray-100 border-b border-gray-200 text-[13px] font-semibold text-gray-700 tracking-wide">
               {formatDateHeader(groupEntries[0])}
             </div>
             <div className="divide-y divide-gray-100">
@@ -136,14 +136,14 @@ export default function ListView() {
                     <span
                       className={`text-[10px] px-1.5 py-0.5 rounded-full ${
                         entry.status === '접수완료'
-                          ? 'bg-brand-100 text-brand-700'
-                          : 'bg-red-100 text-red-500'
+                          ? 'bg-green-50 text-green-600'
+                          : 'bg-red-50 text-red-500'
                       }`}
                     >
                       {entry.status}
                     </span>
                     <span className="text-[10px] text-gray-300">·</span>
-                    <span className="text-[10px] text-gray-400">{entry.category}</span>
+                    <span className="text-[10px] text-gray-500">{entry.category}</span>
                   </div>
                 </a>
               ))}
