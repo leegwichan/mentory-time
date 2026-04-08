@@ -95,7 +95,7 @@ function getSlotEntries(
 }
 
 export default function TimetableView() {
-  const { entries, previewEntry, pendingQustnrSn, activatePreview, clearPreview } = useStore()
+  const { entries, previewEntry, pendingQustnrSn, activatePreview, clearPreview, tabOrigin } = useStore()
   const [alreadyRegisteredMsg, setAlreadyRegisteredMsg] = useState(false)
 
   const handleSimulate = async () => {
@@ -306,7 +306,7 @@ export default function TimetableView() {
                       {entry.author} · {formatHM(entry.startMinutes)}~{formatHM(entry.endMinutes)}
                     </p>
                     <a
-                      href={`https://swmaestro.ai${entry.detailUrl}`}
+                      href={`${tabOrigin}${entry.detailUrl}`}
                       target="_blank"
                       rel="noreferrer"
                       className="text-[10px] text-brand-600 hover:underline"

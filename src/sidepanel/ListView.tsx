@@ -25,7 +25,7 @@ function formatDateHeader(entry: NormalizedEntry): string {
 }
 
 export default function ListView() {
-  const { entries, loading, progress, error, fetchAll, hideCancel, toggleHideCancel } = useStore()
+  const { entries, loading, progress, error, fetchAll, hideCancel, toggleHideCancel, tabOrigin } = useStore()
   const [showPast, setShowPast] = useState(false)
 
   if (loading) {
@@ -117,7 +117,7 @@ export default function ListView() {
               {groupEntries.map((entry) => (
                 <a
                   key={entry.qustnrSn}
-                  href={`https://swmaestro.ai${entry.detailUrl}`}
+                  href={`${tabOrigin}${entry.detailUrl}`}
                   target="_blank"
                   rel="noreferrer"
                   className="block px-4 py-3 hover:bg-brand-50 transition-colors"
