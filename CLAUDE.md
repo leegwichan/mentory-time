@@ -32,6 +32,12 @@ pnpm build     # TypeScript 타입체크 + Vite 빌드
 ```
 pre-commit 훅이 `lint-staged`를 실행하므로, 훅을 절대 `--no-verify`로 우회하지 말 것.
 
+## 참고 문서
+| 문서 | 내용 |
+|------|------|
+| `fix-history.md` | 사이드패널 fetch 인증 불가 문제 해결 과정 (third-party cookie, chrome.scripting.executeScript) |
+| `GC_REPORT.md` | 최근 GC 점검 결과 |
+
 ## GC 에이전트
 피처 머지 전 또는 코드가 많이 쌓였을 때 `/gc` 실행 → `GC_REPORT.md` 생성.  
 담당: 선택자 드리프트 · 계층 위반 · 타입 드리프트 · CLAUDE.md 드리프트 · 데드 코드 · TODO 추적.  

@@ -300,7 +300,8 @@ function buildDetailUrl(qustnrSn) {
 ```
 
 > 커스텀 헤더 제거됨 — 크롬 네이티브 타이틀 바(MentoryTime + 고정/닫기)가 상단을 담당.  
-> 새로고침 버튼 제거 — 접수내역 페이지 방문 시 자동 갱신(`HISTORY_PAGE_DETECTED`).
+> 헤더 새로고침 버튼 제거 — 접수내역 페이지 방문 시 자동 갱신(`HISTORY_PAGE_DETECTED`).  
+> 단, 빈 상태(캐시 없음)에서는 "불러오기" 버튼, 에러 상태에서는 "다시 시도" 버튼으로 수동 `fetchAll()` 가능.
 
 ### 6.2 접수 목록 탭 (F1, F2, F3)
 
