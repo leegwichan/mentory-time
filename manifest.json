@@ -26,6 +26,15 @@
         "https://www.swmaestro.ai/sw/mypage/*"
       ],
       "js": ["src/content/content-script.ts"]
+    },
+    {
+      "matches": [
+        "https://swmaestro.ai/sw/mypage/mentoLec/view.do*",
+        "https://www.swmaestro.ai/sw/mypage/mentoLec/view.do*"
+      ],
+      "js": ["src/content/xhr-hook.ts"],
+      "world": "MAIN",
+      "run_at": "document_start"
     }
   ],
   "icons": {

@@ -5,9 +5,26 @@ let pendingDetail: { qustnrSn: string } | null = null
 
 chrome.runtime.onMessage.addListener(
   (message: { type: string; payload?: Record<string, string> }, sender, sendResponse) => {
-    if (message.type === 'APPLY_COMPLETE') {
-      // 신청 완료: pendingDetail 유지, fetchAll만 트리거
-      chrome.runtime.sendMessage({ type: 'HISTORY_PAGE_DETECTED', payload: null }).catch(() => {})
+    // 신청 완료 → 페이지가 location.reload() 중이므로 탭 reload 완료를 기다린 후
+    // HISTORY_PAGE_DETECTED를 broadcast해 사이드패널의 fetchAll이 안정된 탭에서 실행되도록 한다.
+    if (message.type === 'APPLY_COMPLETE' && sender.tab?.id) {
+      const tabId = sender.tab.id
+      const broadcast = () => {
+        chrome.runtime.sendMessage({ type: 'HISTORY_PAGE_DETECTED', payload: null }).catch(() => {})
+      }
+      let timeoutId: ReturnType<typeof setTimeout>
+      const waitForReload = (updatedTabId: number, changeInfo: { status?: string }) => {
+        if (updatedTabId === tabId && changeInfo.status === 'complete') {
+          clearTimeout(timeoutId)
+          chrome.tabs.onUpdated.removeListener(waitForReload)
+          broadcast()
+        }
+      }
+      timeoutId = setTimeout(() => {
+        chrome.tabs.onUpdated.removeListener(waitForReload)
+        broadcast()
+      }, 5000)
+      chrome.tabs.onUpdated.addListener(waitForReload)
       return
     }
 
