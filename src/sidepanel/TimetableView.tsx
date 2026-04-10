@@ -317,7 +317,7 @@ export default function TimetableView() {
                     </p>
                     {locationCache[entry.qustnrSn] !== undefined && locationCache[entry.qustnrSn] !== '' && (
                       <p className="text-[10px] text-gray-400">
-                        📍 {locationCache[entry.qustnrSn]}
+                        {locationCache[entry.qustnrSn]}
                       </p>
                     )}
                     <a
