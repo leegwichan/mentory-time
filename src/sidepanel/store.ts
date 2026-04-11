@@ -1,7 +1,8 @@
 import { create } from 'zustand'
 import { parseHistoryPage, parseTotalPages, normalizeEntry, parseDetailPage, isLoginPage } from '../lib/parser'
-import { saveEntries, loadStorage } from '../lib/storage'
+import { saveEntries, loadStorage, updateSettings, loadSettings } from '../lib/storage'
 import type { NormalizedEntry, DetailInfo } from '../lib/types'
+import type { WeekStartDay } from '../lib/week'
 
 const HISTORY_PATH = '/sw/mypage/userAnswer/history.do?menuNo=200047&pageIndex='
 
@@ -12,11 +13,13 @@ interface StoreState {
   error: string | null
   lastFetched: number | null
   hideCancel: boolean
+  weekStartDay: WeekStartDay
   pendingQustnrSn: string | null
   previewEntry: DetailInfo | null
   tabOrigin: string
   locationCache: Record<string, string>
   toggleHideCancel: () => void
+  toggleWeekStartDay: () => void
   loadCache: () => Promise<void>
   fetchAll: () => Promise<void>
   setPendingDetail: (qustnrSn: string | null) => void
@@ -34,11 +37,17 @@ export const useStore = create<StoreState>((set, get) => ({
   error: null,
   lastFetched: null,
   hideCancel: true,
+  weekStartDay: 0,
   pendingQustnrSn: null,
   previewEntry: null,
   tabOrigin: 'https://www.swmaestro.ai',
   locationCache: {},
   toggleHideCancel: () => set((s) => ({ hideCancel: !s.hideCancel })),
+  toggleWeekStartDay: () => {
+    const next: WeekStartDay = get().weekStartDay === 1 ? 0 : 1
+    set({ weekStartDay: next })
+    void updateSettings({ weekStartDay: next })
+  },
   setPendingDetail: (qustnrSn) => set({ pendingQustnrSn: qustnrSn }),
   clearPreview: () => set({ previewEntry: null }),
   activatePreview: async (qustnrSn) => {
@@ -74,7 +83,8 @@ export const useStore = create<StoreState>((set, get) => ({
   },
 
   loadCache: async () => {
-    const cached = await loadStorage()
+    const [cached, settings] = await Promise.all([loadStorage(), loadSettings()])
+    set({ hideCancel: settings.hideCancel, weekStartDay: settings.weekStartDay })
     if (cached) {
       const entries = cached.entries.map((e) => ({
         ...e,

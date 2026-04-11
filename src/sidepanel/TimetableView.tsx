@@ -1,74 +1,8 @@
 import { useState, useMemo, useEffect } from 'react'
 import { useStore } from './store'
 import type { NormalizedEntry } from '../lib/types'
-
-const DAY_LABELS = ['월', '화', '수', '목', '금', '토', '일']
-const DAY_SHORT = ['일', '월', '화', '수', '목', '금', '토']
-const SLOT_START = 9 * 60   // 09:00
-const SLOT_END = 23 * 60    // 23:00 (exclusive)
-
-// 해당 날짜가 속한 주의 월요일 00:00 반환
-function getWeekStart(date: Date): Date {
-  const d = new Date(date)
-  if (isNaN(d.getTime())) return new Date(new Date().setHours(0, 0, 0, 0))
-  d.setHours(0, 0, 0, 0)
-  const day = d.getDay() // 0=일, 1=월 ...
-  d.setDate(d.getDate() - (day === 0 ? 6 : day - 1))
-  return d
-}
-
-function addDays(date: Date, days: number): Date {
-  const d = new Date(date)
-  d.setDate(d.getDate() + days)
-  return d
-}
-
-// "dayIndex-minutes" → NormalizedEntry[] 슬롯 맵 (30분 단위)
-function buildSlots(entries: NormalizedEntry[], weekStart: Date) {
-  const slots = new Map<string, NormalizedEntry[]>()
-  const weekEnd = addDays(weekStart, 7)
-
-  for (const entry of entries) {
-    if (entry.status !== '접수완료') continue
-    const d = entry.lectureDateObj
-    if (d < weekStart || d >= weekEnd) continue
-
-    // dayIndex: 월=0 ... 일=6
-    const raw = d.getDay()
-    const dayIndex = raw === 0 ? 6 : raw - 1
-
-    for (let min = entry.startMinutes; min < entry.endMinutes; min += 30) {
-      if (min < SLOT_START || min >= SLOT_END) continue
-      const key = `${dayIndex}-${min}`
-      if (!slots.has(key)) slots.set(key, [])
-      slots.get(key)!.push(entry)
-    }
-  }
-  return slots
-}
-
-function overlapColor(count: number): string {
-  if (count === 0) return ''
-  if (count === 1) return 'bg-[#B7DEB8]'
-  if (count === 2) return 'bg-[#FFCC99]'
-  return 'bg-[#F7B3B6]'
-}
-
-function formatWeekLabel(weekStart: Date): string {
-  const weekEnd = addDays(weekStart, 6)
-  const fmt = (d: Date) => `${d.getMonth() + 1}/${d.getDate()}(${DAY_SHORT[d.getDay()]})`
-  return `${fmt(weekStart)} ~ ${fmt(weekEnd)}`
-}
-
-function formatHM(minutes: number): string {
-  const h = Math.floor(minutes / 60).toString().padStart(2, '0')
-  const m = (minutes % 60).toString().padStart(2, '0')
-  return `${h}:${m}`
-}
-
-// 09:00 ~ 22:30 사이 30분 슬롯 목록
-const TIME_ROWS: number[] = []
-for (let m = SLOT_START; m < SLOT_END; m += 30) TIME_ROWS.push(m)
+import { getDayLabels, getDayName, getWeekStart, toDayIndex, addDays, formatWeekLabel, formatHM } from '../lib/week'
+import { TIME_ROWS, buildSlots, getSlotEntries, overlapColor } from '../lib/slots'
 
 interface PopoverState {
   dayIndex: number
@@ -76,26 +10,9 @@ interface PopoverState {
   entries: NormalizedEntry[]
 }
 
-// 해당 슬롯과 겹치는 모든 항목 (시작~종료 사이에 min이 포함되는 것들)
-function getSlotEntries(
-  allEntries: NormalizedEntry[],
-  weekStart: Date,
-  dayIndex: number,
-  min: number,
-): NormalizedEntry[] {
-  const weekEnd = addDays(weekStart, 7)
-  return allEntries.filter((e) => {
-    if (e.status !== '접수완료') return false
-    const d = e.lectureDateObj
-    if (d < weekStart || d >= weekEnd) return false
-    const raw = d.getDay()
-    const di = raw === 0 ? 6 : raw - 1
-    return di === dayIndex && e.startMinutes <= min && min < e.endMinutes
-  })
-}
-
 export default function TimetableView() {
-  const { entries, previewEntry, pendingQustnrSn, activatePreview, clearPreview, tabOrigin, locationCache, fetchLocation } = useStore()
+  const { entries, previewEntry, pendingQustnrSn, activatePreview, clearPreview, tabOrigin, locationCache, fetchLocation, weekStartDay, toggleWeekStartDay } = useStore()
+  const dayLabels = getDayLabels(weekStartDay)
   const [alreadyRegisteredMsg, setAlreadyRegisteredMsg] = useState(false)
 
   const handleSimulate = async () => {
@@ -106,15 +23,19 @@ export default function TimetableView() {
       setTimeout(() => setAlreadyRegisteredMsg(false), 3000)
     }
   }
-  const [weekStart, setWeekStart] = useState(() => getWeekStart(new Date()))
+
+  // anchorDate: 현재 보고 있는 주 안의 임의 날짜 (weekStart는 여기서 파생)
+  const [anchorDate, setAnchorDate] = useState(() => new Date())
+  const weekStart = useMemo(() => getWeekStart(anchorDate, weekStartDay), [anchorDate, weekStartDay])
+
   const todayIndex = useMemo(() => {
     const today = new Date()
     today.setHours(0, 0, 0, 0)
     const isThisWeek = today >= weekStart && today < addDays(weekStart, 7)
     if (!isThisWeek) return -1
-    const raw = today.getDay()
-    return raw === 0 ? 6 : raw - 1
-  }, [weekStart])
+    return toDayIndex(today.getDay(), weekStartDay)
+  }, [weekStart, weekStartDay])
+
   const [autoNavigated, setAutoNavigated] = useState(false)
   const [popover, setPopover] = useState<PopoverState | null>(null)
 
@@ -139,7 +60,7 @@ export default function TimetableView() {
     const upcoming = completed.filter((e) => e.lectureDateObj >= today)
     const target = upcoming.length > 0 ? upcoming[0] : completed[completed.length - 1]
 
-    setWeekStart(getWeekStart(target.lectureDateObj))
+    setAnchorDate(target.lectureDateObj)
     setAutoNavigated(true)
   }, [entries, autoNavigated])
 
@@ -148,41 +69,49 @@ export default function TimetableView() {
     if (!previewEntry) return null
     const date = new Date(previewEntry.lectureDate)
     if (isNaN(date.getTime())) return null
-    const raw = date.getDay()
-    const dayIndex = raw === 0 ? 6 : raw - 1
+    const dayIndex = toDayIndex(date.getDay(), weekStartDay)
     const [sh = 0, sm = 0] = previewEntry.lectureStartTime.split(':').map(Number)
     const [eh = 0, em = 0] = previewEntry.lectureEndTime.split(':').map(Number)
-    return { dayIndex, startMin: sh * 60 + sm, endMin: eh * 60 + em, weekStart: getWeekStart(date) }
-  }, [previewEntry])
+    return { dayIndex, startMin: sh * 60 + sm, endMin: eh * 60 + em, weekStart: getWeekStart(date, weekStartDay) }
+  }, [previewEntry, weekStartDay])
 
   useEffect(() => {
-    if (previewData) setWeekStart(previewData.weekStart)
+    if (previewData) setAnchorDate(new Date(previewData.weekStart))
   }, [previewData])
 
-  const slots = useMemo(() => buildSlots(entries, weekStart), [entries, weekStart])
+  const slots = useMemo(() => buildSlots(entries, weekStart, weekStartDay), [entries, weekStart, weekStartDay])
 
-  const prevWeek = () => setWeekStart((w) => addDays(w, -7))
-  const nextWeek = () => setWeekStart((w) => addDays(w, 7))
-
-  const rows = TIME_ROWS
+  const prevWeek = () => setAnchorDate((a) => addDays(a, -7))
+  const nextWeek = () => setAnchorDate((a) => addDays(a, 7))
 
   return (
     <div className="flex flex-col h-full">
       {/* 주간 네비게이션 */}
       <div className="flex items-center justify-between px-3 py-2 border-b border-gray-100 bg-gray-50">
-        <button
-          onClick={prevWeek}
-          className="w-6 h-6 flex items-center justify-center text-gray-500 hover:text-brand-600 transition-colors"
-        >
-          ◀
-        </button>
+        <div className="flex items-center gap-1">
+          <button
+            onClick={prevWeek}
+            className="w-6 h-6 flex items-center justify-center text-gray-500 hover:text-brand-600 transition-colors"
+          >
+            ◀
+          </button>
+        </div>
         <span className="text-xs font-semibold text-gray-700">{formatWeekLabel(weekStart)}</span>
-        <button
-          onClick={nextWeek}
-          className="w-6 h-6 flex items-center justify-center text-gray-500 hover:text-brand-600 transition-colors"
-        >
-          ▶
-        </button>
+        <div className="flex items-center gap-1">
+          <button
+            onClick={nextWeek}
+            className="w-6 h-6 flex items-center justify-center text-gray-500 hover:text-brand-600 transition-colors"
+          >
+            ▶
+          </button>
+          <button
+            onClick={toggleWeekStartDay}
+            className="px-1.5 py-0.5 text-[10px] text-gray-400 hover:text-brand-600 border border-gray-200 rounded transition-colors"
+            title={weekStartDay === 1 ? '일요일 시작으로 변경' : '월요일 시작으로 변경'}
+          >
+            {weekStartDay === 1 ? '월~일' : '일~토'}
+          </button>
+        </div>
       </div>
 
       {/* 범례 + 시뮬레이션 버튼 */}
@@ -232,7 +161,7 @@ export default function TimetableView() {
             <thead className="sticky top-0 z-10 bg-white">
               <tr className="border-b border-gray-100">
                 <td className="w-10" />
-                {DAY_LABELS.map((label, i) => {
+                {dayLabels.map((label, i) => {
                   const date = addDays(weekStart, i)
                   const isToday = i === todayIndex
                   return (
@@ -245,7 +174,7 @@ export default function TimetableView() {
               </tr>
             </thead>
             <tbody>
-              {rows.map((min) => (
+              {TIME_ROWS.map((min) => (
                 <tr key={min} className="h-5">
                   {/* 시간 레이블: 정각만 표시 */}
                   <td className="w-10 sticky left-0 bg-white text-right pr-1 text-gray-400 align-top leading-none whitespace-nowrap">
@@ -268,7 +197,7 @@ export default function TimetableView() {
                                 setPopover({
                                   dayIndex,
                                   min,
-                                  entries: getSlotEntries(entries, weekStart, dayIndex, min),
+                                  entries: getSlotEntries(entries, weekStart, dayIndex, min, weekStartDay),
                                 })
                             : undefined
                         }
@@ -295,7 +224,7 @@ export default function TimetableView() {
                 <span className="text-xs font-semibold text-gray-700">
                   {(() => {
                     const day = addDays(weekStart, popover.dayIndex)
-                    return `${day.getMonth() + 1}/${day.getDate()}(${DAY_SHORT[day.getDay()]}) ${formatHM(popover.min)}`
+                    return `${day.getMonth() + 1}/${day.getDate()}(${getDayName(day.getDay())}) ${formatHM(popover.min)}`
                   })()}
                 </span>
                 <button

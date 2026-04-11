@@ -10,9 +10,17 @@ SW마에스트로 멘토링/특강 접수내역을 주간 시간표로 시각화
 - **시뮬레이션** — 특강 상세 페이지 방문 시 시간표에 가상 반영하여 겹침 확인
 - **자동 갱신** — 접수내역 페이지 방문 시 데이터 자동 업데이트
 
+---
+
+- 업데이트 v.1.3.0
+  - 시간표 뷰 선택 (월-일, 일-토)
+  - (TODO) 새로고침 버튼 추가
+  - (TODO) 구글 캘린더 연동
+  - (TODO) 노션 DB 연동
+
 ## 설치 방법
 
-1. [Releases](https://github.com/kisusu115/mentory-time/releases)에서 최신 zip 파일 다운로드
+1. [Releases](https://github.com/leegwichan/mentory-time/releases)에서 최신 zip 파일 다운로드
 2. 압축 해제
 3. Chrome에서 `chrome://extensions` 접속
 4. 우측 상단 **개발자 모드** 활성화

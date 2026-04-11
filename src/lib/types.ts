@@ -31,11 +31,14 @@ export interface DetailInfo {
   location: string           // "온라인(Webex)", "스페이스 M1" 등
 }
 
+import type { WeekStartDay } from './week'
+
 export interface StorageSchema {
   entries: NormalizedEntry[]
   lastFetched: number
   totalPages: number
   settings: {
     hideCancel: boolean
+    weekStartDay: WeekStartDay
   }
 }
