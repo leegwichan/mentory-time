@@ -3,6 +3,7 @@ import { useStore } from './store'
 import type { NormalizedEntry } from '../lib/types'
 import { getDayLabels, getDayName, getWeekStart, toDayIndex, addDays, formatWeekLabel, formatHM } from '../lib/week'
 import { TIME_ROWS, buildSlots, getSlotEntries, overlapColor } from '../lib/slots'
+import GoogleCalendarButton from './GoogleCalendarButton'
 
 interface PopoverState {
   dayIndex: number
@@ -250,9 +251,12 @@ export default function TimetableView() {
               <div className="overflow-y-auto">
                 {popover.entries.map((entry, i) => (
                   <div key={entry.no} className={`px-3 py-2 ${i > 0 ? 'border-t border-gray-100' : ''}`}>
-                    <p className="text-xs font-medium text-gray-800 leading-snug mb-0.5 line-clamp-2">
-                      {entry.title}
-                    </p>
+                    <div className="flex items-start justify-between gap-1">
+                      <p className="text-xs font-medium text-gray-800 leading-snug mb-0.5 line-clamp-2">
+                        {entry.title}
+                      </p>
+                      <GoogleCalendarButton entry={entry} tabOrigin={tabOrigin} />
+                    </div>
                     <p className="text-[10px] text-gray-500">
                       {entry.author} · {formatHM(entry.startMinutes)}~{formatHM(entry.endMinutes)}
                     </p>

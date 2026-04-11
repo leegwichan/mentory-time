@@ -1,6 +1,7 @@
 import { useState } from 'react'
 import { useStore } from './store'
 import type { NormalizedEntry } from '../lib/types'
+import GoogleCalendarButton from './GoogleCalendarButton'
 
 const DAY_LABELS = ['일', '월', '화', '수', '목', '금', '토']
 
@@ -136,13 +137,16 @@ export default function ListView() {
                   rel="noreferrer"
                   className="block px-4 py-3 hover:bg-brand-50 transition-colors"
                 >
-                  <p
-                    className={`font-medium leading-snug line-clamp-2 ${
-                      entry.status === '접수완료' ? 'text-brand-700' : 'text-gray-400'
-                    }`}
-                  >
-                    {entry.title}
-                  </p>
+                  <div className="flex items-start justify-between gap-2">
+                    <p
+                      className={`font-medium leading-snug line-clamp-2 ${
+                        entry.status === '접수완료' ? 'text-brand-700' : 'text-gray-400'
+                      }`}
+                    >
+                      {entry.title}
+                    </p>
+                    <GoogleCalendarButton entry={entry} tabOrigin={tabOrigin} />
+                  </div>
                   <p className="text-xs text-gray-500 mt-0.5">
                     {entry.author} · {entry.lectureStartTime.slice(0, 5)}~{entry.lectureEndTime.slice(0, 5)}
                   </p>
