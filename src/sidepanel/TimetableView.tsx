@@ -11,7 +11,7 @@ interface PopoverState {
 }
 
 export default function TimetableView() {
-  const { entries, previewEntry, pendingQustnrSn, activatePreview, clearPreview, tabOrigin, locationCache, fetchLocation, weekStartDay, toggleWeekStartDay } = useStore()
+  const { entries, previewEntry, pendingQustnrSn, activatePreview, clearPreview, tabOrigin, locationCache, fetchLocation, weekStartDay, toggleWeekStartDay, fetchAll, loading } = useStore()
   const dayLabels = getDayLabels(weekStartDay)
   const [alreadyRegisteredMsg, setAlreadyRegisteredMsg] = useState(false)
 
@@ -110,6 +110,18 @@ export default function TimetableView() {
             title={weekStartDay === 1 ? '일요일 시작으로 변경' : '월요일 시작으로 변경'}
           >
             {weekStartDay === 1 ? '월~일' : '일~토'}
+          </button>
+          <button
+            onClick={fetchAll}
+            disabled={loading}
+            className="w-6 h-6 flex items-center justify-center text-gray-500 hover:text-brand-600 disabled:opacity-40 transition-colors"
+            title="접수내역 새로고침"
+          >
+            {loading ? (
+              <span className="block w-3 h-3 border-[1.5px] border-gray-300 border-t-brand-600 rounded-full animate-spin" />
+            ) : (
+              '↻'
+            )}
           </button>
         </div>
       </div>

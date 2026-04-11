@@ -78,26 +78,40 @@ export default function ListView() {
   return (
     <div className="h-full flex flex-col overflow-hidden">
       {/* 필터 바 */}
-      <div className="flex items-center gap-2 px-4 py-2 border-b border-gray-200 bg-white flex-wrap">
+      <div className="flex items-center justify-between px-4 py-2 border-b border-gray-200 bg-white">
+        <div className="flex items-center gap-2 flex-wrap">
+          <button
+            onClick={toggleHideCancel}
+            className={`text-[10px] px-2 py-0.5 rounded-full border transition-colors ${
+              !hideCancel
+                ? 'bg-brand-600 text-white border-brand-600'
+                : 'bg-gray-50 text-gray-500 border-gray-300 hover:border-gray-400 hover:text-gray-700'
+            }`}
+          >
+            접수 취소 포함
+          </button>
+          <button
+            onClick={() => setShowPast((v) => !v)}
+            className={`text-[10px] px-2 py-0.5 rounded-full border transition-colors ${
+              showPast
+                ? 'bg-brand-600 text-white border-brand-600'
+                : 'bg-gray-50 text-gray-500 border-gray-300 hover:border-gray-400 hover:text-gray-700'
+            }`}
+          >
+            이전 기록 포함
+          </button>
+        </div>
         <button
-          onClick={toggleHideCancel}
-          className={`text-[10px] px-2 py-0.5 rounded-full border transition-colors ${
-            !hideCancel
-              ? 'bg-brand-600 text-white border-brand-600'
-              : 'bg-gray-50 text-gray-500 border-gray-300 hover:border-gray-400 hover:text-gray-700'
-          }`}
+          onClick={fetchAll}
+          disabled={loading}
+          className="w-6 h-6 flex items-center justify-center text-gray-500 hover:text-brand-600 disabled:opacity-40 transition-colors"
+          title="접수내역 새로고침"
         >
-          접수 취소 포함
-        </button>
-        <button
-          onClick={() => setShowPast((v) => !v)}
-          className={`text-[10px] px-2 py-0.5 rounded-full border transition-colors ${
-            showPast
-              ? 'bg-brand-600 text-white border-brand-600'
-              : 'bg-gray-50 text-gray-500 border-gray-300 hover:border-gray-400 hover:text-gray-700'
-          }`}
-        >
-          이전 기록 포함
+          {loading ? (
+            <span className="block w-3 h-3 border-[1.5px] border-gray-300 border-t-brand-600 rounded-full animate-spin" />
+          ) : (
+            '↻'
+          )}
         </button>
       </div>
 
