@@ -46,8 +46,11 @@ export default function ListView() {
     return (
       <div className="flex flex-col items-center justify-center h-full gap-3 px-6 text-center">
         <p className="text-xs text-red-500">{error}</p>
-        <button onClick={fetchAll} className="text-xs text-brand-600 underline">
-          다시 시도
+        <button
+          onClick={() => chrome.tabs.create({ url: `${tabOrigin}/sw/mypage/userAnswer/history.do?menuNo=200047&pageIndex=1` })}
+          className="text-xs text-brand-600 font-semibold underline"
+        >
+          SW마에스트로 로그인하기
         </button>
       </div>
     )
