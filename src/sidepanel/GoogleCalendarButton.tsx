@@ -33,10 +33,10 @@ export default function GoogleCalendarButton({ entry, tabOrigin }: Props) {
     <button
       onClick={handleClick}
       disabled={fetching}
-      className="flex-shrink-0 mt-0.5 opacity-60 hover:opacity-100 transition-opacity disabled:opacity-30"
+      className="flex-shrink-0 -mt-1 p-1.5 opacity-60 hover:opacity-100 transition-opacity disabled:opacity-30"
       title="구글 캘린더에 추가"
     >
-      <img src={calendarIconUrl} alt="구글 캘린더에 추가" className="w-4 h-4" />
+      <img src={calendarIconUrl} alt="구글 캘린더에 추가" className="w-5 h-5" />
     </button>
   )
 }
