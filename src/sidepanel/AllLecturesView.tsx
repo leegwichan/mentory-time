@@ -52,7 +52,17 @@ export default function AllLecturesView() {
     allLecturesError,
     refreshDayLectures,
     tabOrigin,
+    entries,
   } = useStore()
+
+  /** 접수완료된 qustnrSn 세트 */
+  const registeredSet = useMemo(() => {
+    const s = new Set<string>()
+    for (const e of entries) {
+      if (e.status === '접수완료') s.add(e.qustnrSn)
+    }
+    return s
+  }, [entries])
 
   const [statusFilter, setStatusFilter] = useState<LectureListStatus | '전체'>('전체')
   const [categoryFilter, setCategoryFilter] = useState<string>('전체')
@@ -234,7 +244,7 @@ export default function AllLecturesView() {
         ) : (
           <div className="divide-y divide-gray-100">
             {dayEntries.map((entry) => (
-              <LectureCard key={`${entry.qustnrSn}-${entry.no}`} entry={entry} tabOrigin={tabOrigin} onShare={handleShare} />
+              <LectureCard key={`${entry.qustnrSn}-${entry.no}`} entry={entry} tabOrigin={tabOrigin} onShare={handleShare} registered={registeredSet.has(entry.qustnrSn)} />
             ))}
           </div>
         )}
@@ -250,9 +260,9 @@ export default function AllLecturesView() {
   )
 }
 
-function LectureCard({ entry, tabOrigin, onShare }: { entry: NormalizedListEntry; tabOrigin: string; onShare: (entry: NormalizedListEntry) => void }) {
+function LectureCard({ entry, tabOrigin, onShare, registered }: { entry: NormalizedListEntry; tabOrigin: string; onShare: (entry: NormalizedListEntry) => void; registered: boolean }) {
   return (
-    <div className="px-4 py-3 hover:bg-brand-50 transition-colors">
+    <div className={`px-4 py-3 transition-colors ${registered ? 'bg-brand-50/60 border-l-2 border-brand-500' : 'hover:bg-brand-50'}`}>
       <a
         href={`${tabOrigin}${entry.detailUrl}`}
         target="_blank"
@@ -260,8 +270,7 @@ function LectureCard({ entry, tabOrigin, onShare }: { entry: NormalizedListEntry
         className="block"
       >
         <p
-          className={`font-medium leading-snug line-clamp-2 ${entry.status === '접수중' ? 'text-brand-700' : 'text-gray-400'
-            }`}
+          className={`font-medium leading-snug line-clamp-2 ${entry.status === '접수중' ? 'text-brand-700' : 'text-gray-400'}`}
         >
           {entry.title}
         </p>
@@ -278,6 +287,11 @@ function LectureCard({ entry, tabOrigin, onShare }: { entry: NormalizedListEntry
           </span>
           <span className="text-[10px] text-gray-300">·</span>
           <span className="text-[10px] text-gray-500">{entry.category}</span>
+          {registered && (
+            <span className="text-[10px] px-1.5 py-0.5 rounded-full bg-green-50 text-green-600 font-medium">
+              접수완료
+            </span>
+          )}
           <button
             onClick={(e) => { e.preventDefault(); onShare(entry) }}
             className="text-[10px] text-emerald-600 hover:underline ml-auto"
