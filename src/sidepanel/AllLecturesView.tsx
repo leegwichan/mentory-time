@@ -104,8 +104,17 @@ export default function AllLecturesView() {
 
   const isToday = currentDateKey === toDateKey(getToday())
 
+  const [toast, setToast] = useState(false)
+  const handleShare = useCallback((entry: NormalizedListEntry) => {
+    const text = `${entry.title} · ${entry.author} · ${minutesToTime(entry.startMinutes)}~${minutesToTime(entry.endMinutes)}\n${tabOrigin}${entry.detailUrl}`
+    navigator.clipboard.writeText(text).then(() => {
+      setToast(true)
+      setTimeout(() => setToast(false), 2000)
+    })
+  }, [tabOrigin])
+
   return (
-    <div className="h-full flex flex-col overflow-hidden">
+    <div className="h-full flex flex-col overflow-hidden relative">
       {/* 날짜 네비게이션 */}
       <div className="flex items-center justify-between px-3 py-2 border-b border-gray-200 bg-white">
         <button
@@ -225,16 +234,23 @@ export default function AllLecturesView() {
         ) : (
           <div className="divide-y divide-gray-100">
             {dayEntries.map((entry) => (
-              <LectureCard key={`${entry.qustnrSn}-${entry.no}`} entry={entry} tabOrigin={tabOrigin} />
+              <LectureCard key={`${entry.qustnrSn}-${entry.no}`} entry={entry} tabOrigin={tabOrigin} onShare={handleShare} />
             ))}
           </div>
         )}
       </div>
+
+      {/* 토스트 */}
+      {toast && (
+        <div className="absolute bottom-4 left-1/2 -translate-x-1/2 px-3 py-1.5 bg-gray-800 text-white text-xs rounded-lg shadow-lg animate-fade-in">
+          복사되었습니다!
+        </div>
+      )}
     </div>
   )
 }
 
-function LectureCard({ entry, tabOrigin }: { entry: NormalizedListEntry; tabOrigin: string }) {
+function LectureCard({ entry, tabOrigin, onShare }: { entry: NormalizedListEntry; tabOrigin: string; onShare: (entry: NormalizedListEntry) => void }) {
   return (
     <div className="px-4 py-3 hover:bg-brand-50 transition-colors">
       <a
@@ -262,6 +278,12 @@ function LectureCard({ entry, tabOrigin }: { entry: NormalizedListEntry; tabOrig
           </span>
           <span className="text-[10px] text-gray-300">·</span>
           <span className="text-[10px] text-gray-500">{entry.category}</span>
+          <button
+            onClick={(e) => { e.preventDefault(); onShare(entry) }}
+            className="text-[10px] text-emerald-600 hover:underline ml-auto"
+          >
+            공유하기
+          </button>
         </div>
       </a>
     </div>
