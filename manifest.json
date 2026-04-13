@@ -10,7 +10,8 @@
   ],
   "host_permissions": [
     "https://swmaestro.ai/*",
-    "https://www.swmaestro.ai/*"
+    "https://www.swmaestro.ai/*",
+    "https://api.notion.com/*"
   ],
   "background": {
     "service_worker": "src/background/service-worker.ts",

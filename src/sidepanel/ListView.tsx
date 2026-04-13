@@ -2,6 +2,7 @@ import { useState } from 'react'
 import { useStore } from './store'
 import type { NormalizedEntry } from '../lib/types'
 import GoogleCalendarButton from './GoogleCalendarButton'
+import NotionButton from './NotionButton'
 
 const DAY_LABELS = ['일', '월', '화', '수', '목', '금', '토']
 
@@ -148,7 +149,10 @@ export default function ListView() {
                     >
                       {entry.title}
                     </p>
-                    <GoogleCalendarButton entry={entry} tabOrigin={tabOrigin} />
+                    <div className="flex items-center gap-0.5 shrink-0">
+                      <NotionButton entry={entry} />
+                      <GoogleCalendarButton entry={entry} tabOrigin={tabOrigin} />
+                    </div>
                   </div>
                   <p className="text-xs text-gray-500 mt-0.5">
                     {entry.author} · {entry.lectureStartTime.slice(0, 5)}~{entry.lectureEndTime.slice(0, 5)}

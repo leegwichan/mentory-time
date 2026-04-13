@@ -1,7 +1,8 @@
 import { create } from 'zustand'
 import { parseHistoryPage, parseTotalPages, normalizeEntry, parseDetailPage, isLoginPage } from '../lib/parser'
-import { saveEntries, loadStorage, updateSettings, loadSettings } from '../lib/storage'
-import type { NormalizedEntry, DetailInfo } from '../lib/types'
+import { saveEntries, loadStorage, updateSettings, loadSettings, loadNotionSettings, saveNotionSettings as persistNotionSettings, loadNotionAddedSet, markAsNotionAdded } from '../lib/storage'
+import { createNotionPage, NotionApiError } from '../lib/notion'
+import type { NormalizedEntry, DetailInfo, NotionSettings } from '../lib/types'
 import type { WeekStartDay } from '../lib/week'
 
 const HISTORY_PATH = '/sw/mypage/userAnswer/history.do?menuNo=200047&pageIndex='
@@ -28,6 +29,13 @@ interface StoreState {
   activatePreview: (qustnrSn: string) => Promise<boolean>
   /** 상세 페이지에서 장소 정보를 fetch해 locationCache에 저장 (이미 있으면 skip) */
   fetchLocation: (qustnrSn: string) => Promise<void>
+  notionSettings: NotionSettings | null
+  notionAddedSet: Set<string>
+  notionBusy: string | null
+  notionError: string | null
+  loadNotionState: () => Promise<void>
+  saveNotionSettings: (settings: NotionSettings) => Promise<void>
+  addToNotion: (entry: NormalizedEntry) => Promise<void>
 }
 
 export const useStore = create<StoreState>((set, get) => ({
@@ -42,6 +50,10 @@ export const useStore = create<StoreState>((set, get) => ({
   previewEntry: null,
   tabOrigin: 'https://www.swmaestro.ai',
   locationCache: {},
+  notionSettings: null,
+  notionAddedSet: new Set<string>(),
+  notionBusy: null,
+  notionError: null,
   toggleHideCancel: () => set((s) => ({ hideCancel: !s.hideCancel })),
   toggleWeekStartDay: () => {
     const next: WeekStartDay = get().weekStartDay === 1 ? 0 : 1
@@ -79,6 +91,38 @@ export const useStore = create<StoreState>((set, get) => ({
       set((s) => ({ locationCache: { ...s.locationCache, [qustnrSn]: info?.location ?? '' } }))
     } catch {
       set((s) => ({ locationCache: { ...s.locationCache, [qustnrSn]: '' } }))
+    }
+  },
+
+  loadNotionState: async () => {
+    const [ns, addedSet] = await Promise.all([loadNotionSettings(), loadNotionAddedSet()])
+    set({ notionSettings: ns, notionAddedSet: addedSet })
+  },
+
+  saveNotionSettings: async (settings) => {
+    await persistNotionSettings(settings)
+    set({ notionSettings: settings })
+  },
+
+  addToNotion: async (entry) => {
+    const { notionSettings, locationCache, fetchLocation, tabOrigin } = get()
+    if (!notionSettings) return
+    set({ notionBusy: entry.qustnrSn, notionError: null })
+    try {
+      if (locationCache[entry.qustnrSn] === undefined) {
+        await fetchLocation(entry.qustnrSn)
+      }
+      const location = get().locationCache[entry.qustnrSn] ?? ''
+      await createNotionPage(entry, location, tabOrigin, notionSettings)
+      await markAsNotionAdded(entry.qustnrSn)
+      set((s) => {
+        const next = new Set(s.notionAddedSet)
+        next.add(entry.qustnrSn)
+        return { notionAddedSet: next, notionBusy: null }
+      })
+    } catch (e) {
+      const msg = e instanceof NotionApiError ? e.toUserMessage() : 'Notion 추가에 실패했습니다.'
+      set({ notionBusy: null, notionError: msg })
     }
   },
 

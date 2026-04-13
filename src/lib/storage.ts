@@ -1,4 +1,4 @@
-import type { NormalizedEntry, StorageSchema } from './types'
+import type { NormalizedEntry, NotionSettings, StorageSchema } from './types'
 
 export async function saveEntries(
   entries: NormalizedEntry[],
@@ -28,4 +28,25 @@ export async function updateSettings(
 ): Promise<void> {
   const current = await loadSettings()
   await chrome.storage.local.set({ settings: { ...current, ...patch } })
+}
+
+export async function loadNotionSettings(): Promise<NotionSettings | null> {
+  const result = await chrome.storage.local.get('notionSettings')
+  return (result['notionSettings'] as NotionSettings) ?? null
+}
+
+export async function saveNotionSettings(settings: NotionSettings): Promise<void> {
+  await chrome.storage.local.set({ notionSettings: settings })
+}
+
+export async function loadNotionAddedSet(): Promise<Set<string>> {
+  const result = await chrome.storage.local.get('notionAddedSet')
+  const arr = (result['notionAddedSet'] as string[] | undefined) ?? []
+  return new Set(arr)
+}
+
+export async function markAsNotionAdded(qustnrSn: string): Promise<void> {
+  const set = await loadNotionAddedSet()
+  set.add(qustnrSn)
+  await chrome.storage.local.set({ notionAddedSet: [...set] })
 }

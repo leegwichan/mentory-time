@@ -4,6 +4,7 @@ import type { NormalizedEntry } from '../lib/types'
 import { getDayLabels, getDayName, getWeekStart, toDayIndex, addDays, formatWeekLabel, formatHM } from '../lib/week'
 import { TIME_ROWS, buildSlots, getSlotEntries, overlapColor } from '../lib/slots'
 import GoogleCalendarButton from './GoogleCalendarButton'
+import NotionButton from './NotionButton'
 
 interface PopoverState {
   dayIndex: number
@@ -255,7 +256,10 @@ export default function TimetableView() {
                       <p className="text-xs font-medium text-gray-800 leading-snug mb-0.5 line-clamp-2">
                         {entry.title}
                       </p>
-                      <GoogleCalendarButton entry={entry} tabOrigin={tabOrigin} />
+                      <div className="flex items-center gap-0.5 shrink-0">
+                        <NotionButton entry={entry} />
+                        <GoogleCalendarButton entry={entry} tabOrigin={tabOrigin} />
+                      </div>
                     </div>
                     <p className="text-[10px] text-gray-500">
                       {entry.author} · {formatHM(entry.startMinutes)}~{formatHM(entry.endMinutes)}

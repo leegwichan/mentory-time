@@ -33,6 +33,30 @@ export interface DetailInfo {
 
 import type { WeekStartDay } from './week'
 
+/** Notion DB 속성 정보 (스키마 조회 결과) */
+export interface NotionProperty {
+  id: string
+  name: string
+  type: string  // "title" | "rich_text" | "date" | "select" | "url" | ...
+}
+
+/** 사용자의 Notion DB 속성 이름과 NormalizedEntry 필드의 매핑 */
+export interface NotionPropertyMapping {
+  title: string          // entry.title       → Notion title 속성명 (필수)
+  author?: string        // entry.author      → Notion rich_text 속성명
+  date?: string          // lectureDate+times → Notion date 속성명
+  category?: string      // entry.category    → Notion select 속성명
+  status?: string        // entry.status      → Notion select 속성명
+  detailUrl?: string     // 상세 링크         → Notion url 속성명
+  location?: string      // 장소 정보         → Notion rich_text 속성명
+}
+
+export interface NotionSettings {
+  token: string
+  databaseId: string
+  mapping: NotionPropertyMapping
+}
+
 export interface StorageSchema {
   entries: NormalizedEntry[]
   lastFetched: number
@@ -41,4 +65,6 @@ export interface StorageSchema {
     hideCancel: boolean
     weekStartDay: WeekStartDay
   }
+  notionSettings?: NotionSettings
+  notionAddedSet?: string[]
 }
