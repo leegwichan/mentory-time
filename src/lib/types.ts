@@ -64,6 +64,7 @@ export interface StorageSchema {
   settings: {
     hideCancel: boolean
     weekStartDay: WeekStartDay
+    recentHours: number  // 0.5 ~ 12, 기본값 3
   }
   notionSettings?: NotionSettings
   notionAddedSet?: string[]

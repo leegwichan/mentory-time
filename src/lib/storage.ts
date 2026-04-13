@@ -20,7 +20,7 @@ export async function loadStorage(): Promise<Omit<StorageSchema, 'settings'> | n
 export async function loadSettings(): Promise<StorageSchema['settings']> {
   const result = await chrome.storage.local.get('settings')
   const saved = result['settings'] as Partial<StorageSchema['settings']> | undefined
-  return { hideCancel: true, weekStartDay: 0, ...saved }
+  return { hideCancel: true, weekStartDay: 0, recentHours: 3, ...saved }
 }
 
 export async function updateSettings(

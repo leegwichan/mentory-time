@@ -6,6 +6,15 @@ import NotionButton from './NotionButton'
 
 const DAY_LABELS = ['일', '월', '화', '수', '목', '금', '토']
 
+const RECENT_HOUR_OPTIONS = [
+  { value: 0.5, label: '30분' },
+  { value: 1, label: '1시간' },
+  { value: 2, label: '2시간' },
+  { value: 3, label: '3시간' },
+  { value: 6, label: '6시간' },
+  { value: 12, label: '12시간' },
+] as const
+
 function getToday(): Date {
   const d = new Date()
   d.setHours(0, 0, 0, 0)
@@ -26,9 +35,83 @@ function formatDateHeader(entry: NormalizedEntry): string {
   return `${entry.lectureDate} (${DAY_LABELS[entry.dayOfWeek]})`
 }
 
+function getRecentEntries(entries: NormalizedEntry[], hours: number): NormalizedEntry[] {
+  const cutoff = Date.now() - hours * 60 * 60 * 1000
+  return entries.filter((e) => {
+    const ts = new Date(e.registDate.replace(' ', 'T')).getTime()
+    return !isNaN(ts) && ts >= cutoff
+  })
+}
+
+function formatRecentLabel(hours: number): string {
+  const opt = RECENT_HOUR_OPTIONS.find((o) => o.value === hours)
+  return opt ? opt.label : `${hours}시간`
+}
+
+function EntryCard({
+  entry,
+  tabOrigin,
+  showNewBadge,
+}: {
+  entry: NormalizedEntry
+  tabOrigin: string
+  showNewBadge?: boolean
+}) {
+  return (
+    <a
+      href={`${tabOrigin}${entry.detailUrl}`}
+      target="_blank"
+      rel="noreferrer"
+      className="block px-4 py-3 hover:bg-brand-50 transition-colors"
+    >
+      <div className="flex items-start justify-between gap-2">
+        <div className="flex items-center gap-1.5 min-w-0">
+          {showNewBadge && (
+            <span className="shrink-0 text-[10px] px-1.5 py-0.5 rounded-full bg-blue-50 text-blue-600 font-semibold">
+              NEW
+            </span>
+          )}
+          <p
+            className={`font-medium leading-snug line-clamp-2 ${
+              entry.status === '접수완료' ? 'text-brand-700' : 'text-gray-400'
+            }`}
+          >
+            {entry.title}
+          </p>
+        </div>
+        <div className="flex items-center gap-0.5 shrink-0">
+          <NotionButton entry={entry} />
+          <GoogleCalendarButton entry={entry} tabOrigin={tabOrigin} />
+        </div>
+      </div>
+      <p className="text-xs text-gray-500 mt-0.5">
+        {entry.author} · {entry.lectureStartTime.slice(0, 5)}~{entry.lectureEndTime.slice(0, 5)}
+      </p>
+      <div className="flex items-center gap-1.5 mt-1">
+        <span
+          className={`text-[10px] px-1.5 py-0.5 rounded-full ${
+            entry.status === '접수완료'
+              ? 'bg-green-50 text-green-600'
+              : 'bg-red-50 text-red-500'
+          }`}
+        >
+          {entry.status}
+        </span>
+        <span className="text-[10px] text-gray-300">·</span>
+        <span className="text-[10px] text-gray-500">{entry.category}</span>
+      </div>
+    </a>
+  )
+}
+
 export default function ListView() {
-  const { entries, loading, progress, error, fetchAll, hideCancel, toggleHideCancel, tabOrigin } = useStore()
+  const {
+    entries, loading, progress, error, fetchAll,
+    hideCancel, toggleHideCancel, tabOrigin,
+    recentHours, setRecentHours,
+  } = useStore()
   const [showPast, setShowPast] = useState(false)
+  const [recentOpen, setRecentOpen] = useState(true)
 
   if (loading) {
     return (
@@ -80,6 +163,8 @@ export default function ListView() {
     .filter((e) => !hideCancel || e.status === '접수완료')
   const groups = groupByDate(filtered)
 
+  const recentEntries = getRecentEntries(entries, recentHours)
+
   return (
     <div className="h-full flex flex-col overflow-hidden">
       {/* 필터 바 */}
@@ -105,6 +190,18 @@ export default function ListView() {
           >
             이전 기록 포함
           </button>
+          <select
+            value={recentHours}
+            onChange={(e) => setRecentHours(Number(e.target.value))}
+            className="text-[10px] px-1.5 py-0.5 rounded-full border border-gray-300 bg-gray-50 text-gray-500 hover:border-gray-400 hover:text-gray-700 focus:outline-none focus:ring-1 focus:ring-brand-300 transition-colors"
+            title="최근 등록 기준 시간"
+          >
+            {RECENT_HOUR_OPTIONS.map((opt) => (
+              <option key={opt.value} value={opt.value}>
+                신청 {opt.label} 이내
+              </option>
+            ))}
+          </select>
         </div>
         <button
           onClick={fetchAll}
@@ -120,62 +217,48 @@ export default function ListView() {
         </button>
       </div>
 
-      {/* 날짜 그룹 목록 */}
+      {/* 스크롤 영역 */}
       <div className="flex-1 overflow-y-auto">
-      {groups.length === 0 ? (
-        <div className="flex items-center justify-center h-32 text-xs text-gray-400">
-          해당하는 멘토링/특강이 없습니다.
-        </div>
-      ) : (
-        groups.map(([date, groupEntries]) => (
-          <div key={date}>
-            <div className="px-4 py-1.5 bg-gray-100 border-b border-gray-200 text-[13px] font-semibold text-gray-700 tracking-wide">
-              {formatDateHeader(groupEntries[0])}
-            </div>
-            <div className="divide-y divide-gray-100">
-              {groupEntries.map((entry) => (
-                <a
-                  key={entry.qustnrSn}
-                  href={`${tabOrigin}${entry.detailUrl}`}
-                  target="_blank"
-                  rel="noreferrer"
-                  className="block px-4 py-3 hover:bg-brand-50 transition-colors"
-                >
-                  <div className="flex items-start justify-between gap-2">
-                    <p
-                      className={`font-medium leading-snug line-clamp-2 ${
-                        entry.status === '접수완료' ? 'text-brand-700' : 'text-gray-400'
-                      }`}
-                    >
-                      {entry.title}
-                    </p>
-                    <div className="flex items-center gap-0.5 shrink-0">
-                      <NotionButton entry={entry} />
-                      <GoogleCalendarButton entry={entry} tabOrigin={tabOrigin} />
-                    </div>
-                  </div>
-                  <p className="text-xs text-gray-500 mt-0.5">
-                    {entry.author} · {entry.lectureStartTime.slice(0, 5)}~{entry.lectureEndTime.slice(0, 5)}
-                  </p>
-                  <div className="flex items-center gap-1.5 mt-1">
-                    <span
-                      className={`text-[10px] px-1.5 py-0.5 rounded-full ${
-                        entry.status === '접수완료'
-                          ? 'bg-green-50 text-green-600'
-                          : 'bg-red-50 text-red-500'
-                      }`}
-                    >
-                      {entry.status}
-                    </span>
-                    <span className="text-[10px] text-gray-300">·</span>
-                    <span className="text-[10px] text-gray-500">{entry.category}</span>
-                  </div>
-                </a>
-              ))}
-            </div>
+        {/* 최근 등록 섹션 */}
+        {recentEntries.length > 0 && (
+          <div className="border-b-2 border-blue-100">
+            <button
+              onClick={() => setRecentOpen((v) => !v)}
+              className="w-full flex items-center px-4 py-2 bg-blue-50 hover:bg-blue-100 transition-colors"
+            >
+              <span className="text-xs font-semibold text-blue-700">
+                {recentOpen ? '▾' : '▸'} 신청 {formatRecentLabel(recentHours)} 이내 ({recentEntries.length}건)
+              </span>
+            </button>
+            {recentOpen && (
+              <div className="divide-y divide-blue-50 bg-white">
+                {recentEntries.map((entry) => (
+                  <EntryCard key={entry.qustnrSn} entry={entry} tabOrigin={tabOrigin} showNewBadge />
+                ))}
+              </div>
+            )}
           </div>
-        ))
-      )}
+        )}
+
+        {/* 날짜 그룹 목록 */}
+        {groups.length === 0 ? (
+          <div className="flex items-center justify-center h-32 text-xs text-gray-400">
+            해당하는 멘토링/특강이 없습니다.
+          </div>
+        ) : (
+          groups.map(([date, groupEntries]) => (
+            <div key={date}>
+              <div className="px-4 py-1.5 bg-gray-100 border-b border-gray-200 text-[13px] font-semibold text-gray-700 tracking-wide">
+                {formatDateHeader(groupEntries[0])}
+              </div>
+              <div className="divide-y divide-gray-100">
+                {groupEntries.map((entry) => (
+                  <EntryCard key={entry.qustnrSn} entry={entry} tabOrigin={tabOrigin} />
+                ))}
+              </div>
+            </div>
+          ))
+        )}
       </div>
     </div>
   )

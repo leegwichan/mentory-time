@@ -15,12 +15,14 @@ interface StoreState {
   lastFetched: number | null
   hideCancel: boolean
   weekStartDay: WeekStartDay
+  recentHours: number
   pendingQustnrSn: string | null
   previewEntry: DetailInfo | null
   tabOrigin: string
   locationCache: Record<string, string>
   toggleHideCancel: () => void
   toggleWeekStartDay: () => void
+  setRecentHours: (hours: number) => void
   loadCache: () => Promise<void>
   fetchAll: () => Promise<void>
   setPendingDetail: (qustnrSn: string | null) => void
@@ -47,6 +49,7 @@ export const useStore = create<StoreState>((set, get) => ({
   lastFetched: null,
   hideCancel: true,
   weekStartDay: 0,
+  recentHours: 3,
   pendingQustnrSn: null,
   previewEntry: null,
   tabOrigin: 'https://www.swmaestro.ai',
@@ -60,6 +63,10 @@ export const useStore = create<StoreState>((set, get) => ({
     const next: WeekStartDay = get().weekStartDay === 1 ? 0 : 1
     set({ weekStartDay: next })
     void updateSettings({ weekStartDay: next })
+  },
+  setRecentHours: (hours: number) => {
+    set({ recentHours: hours })
+    void updateSettings({ recentHours: hours })
   },
   setPendingDetail: (qustnrSn) => set({ pendingQustnrSn: qustnrSn }),
   clearPreview: () => set({ previewEntry: null }),
@@ -135,7 +142,7 @@ export const useStore = create<StoreState>((set, get) => ({
 
   loadCache: async () => {
     const [cached, settings] = await Promise.all([loadStorage(), loadSettings()])
-    set({ hideCancel: settings.hideCancel, weekStartDay: settings.weekStartDay })
+    set({ hideCancel: settings.hideCancel, weekStartDay: settings.weekStartDay, recentHours: settings.recentHours })
     if (cached) {
       const entries = cached.entries.map((e) => ({
         ...e,
