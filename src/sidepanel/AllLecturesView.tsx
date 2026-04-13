@@ -1,4 +1,5 @@
-import { useState, useMemo, useCallback, useEffect, useRef } from 'react'
+import { memo, useState, useMemo, useCallback, useEffect, useRef } from 'react'
+import { useShallow } from 'zustand/react/shallow'
 import { useStore } from './store'
 import LoginForm from './LoginForm'
 import type { NormalizedListEntry, LectureListStatus } from '../lib/types'
@@ -54,7 +55,17 @@ export default function AllLecturesView() {
     refreshDayLectures,
     tabOrigin,
     entries,
-  } = useStore()
+  } = useStore(
+    useShallow((s) => ({
+      allLectures: s.allLectures,
+      allLecturesLoading: s.allLecturesLoading,
+      allLecturesProgress: s.allLecturesProgress,
+      allLecturesError: s.allLecturesError,
+      refreshDayLectures: s.refreshDayLectures,
+      tabOrigin: s.tabOrigin,
+      entries: s.entries,
+    })),
+  )
 
   /** 접수완료된 qustnrSn 세트 */
   const registeredSet = useMemo(() => {
@@ -75,11 +86,23 @@ export default function AllLecturesView() {
   /** 이미 fetch한 날짜를 추적 */
   const fetchedDatesRef = useRef<Set<string>>(new Set())
 
-  /** 현재 날짜의 캐시 데이터 존재 여부 */
-  const hasCacheForDay = useMemo(
-    () => allLectures.some((e) => e.lectureDate === currentDateKey),
-    [allLectures, currentDateKey],
+  /** 날짜별 강의 Map (O(1) lookup) */
+  const lecturesByDate = useMemo(() => {
+    const m = new Map<string, NormalizedListEntry[]>()
+    for (const e of allLectures) {
+      const arr = m.get(e.lectureDate)
+      if (arr) arr.push(e)
+      else m.set(e.lectureDate, [e])
+    }
+    return m
+  }, [allLectures])
+
+  const dayAllEntries = useMemo(
+    () => lecturesByDate.get(currentDateKey) ?? [],
+    [lecturesByDate, currentDateKey],
   )
+  const hasCacheForDay = dayAllEntries.length > 0
+  const totalForDay = dayAllEntries.length
 
   /** 날짜가 바뀌면 캐시가 없는 경우 자동 fetch */
   useEffect(() => {
@@ -92,18 +115,11 @@ export default function AllLecturesView() {
   /** 현재 날짜에 해당하는 강의 (필터 적용) */
   const dayEntries = useMemo(() => {
     const tf = TIME_OPTIONS[timeFilter]
-    return allLectures
-      .filter((e) => e.lectureDate === currentDateKey)
+    return dayAllEntries
       .filter((e) => statusFilter === '전체' || e.status === statusFilter)
       .filter((e) => categoryFilter === '전체' || e.category === categoryFilter)
       .filter((e) => e.startMinutes >= tf.from && e.startMinutes < tf.to)
-  }, [allLectures, currentDateKey, statusFilter, categoryFilter, timeFilter])
-
-  /** 현재 날짜의 전체 강의 수 (필터 무관) */
-  const totalForDay = useMemo(
-    () => allLectures.filter((e) => e.lectureDate === currentDateKey).length,
-    [allLectures, currentDateKey],
-  )
+  }, [dayAllEntries, statusFilter, categoryFilter, timeFilter])
 
   const goToDate = useCallback((offset: number) => {
     setCurrentDate((prev) => {
@@ -221,7 +237,7 @@ export default function AllLecturesView() {
       </div>
 
       {/* 강의 목록 */}
-      <div className="flex-1 overflow-y-auto">
+      <div className="flex-1 overflow-y-auto [will-change:transform]">
         {allLecturesLoading ? (
           <div className="flex flex-col items-center justify-center h-32 gap-2 text-brand-600">
             <div className="w-5 h-5 border-2 border-brand-200 border-t-brand-600 rounded-full animate-spin" />
@@ -265,9 +281,9 @@ export default function AllLecturesView() {
   )
 }
 
-function LectureCard({ entry, tabOrigin, onShare, registered }: { entry: NormalizedListEntry; tabOrigin: string; onShare: (entry: NormalizedListEntry) => void; registered: boolean }) {
+const LectureCard = memo(function LectureCard({ entry, tabOrigin, onShare, registered }: { entry: NormalizedListEntry; tabOrigin: string; onShare: (entry: NormalizedListEntry) => void; registered: boolean }) {
   return (
-    <div className={`px-4 py-3 transition-colors ${registered ? 'bg-brand-50/60 border-l-2 border-brand-500' : 'hover:bg-brand-50'}`}>
+    <div className={`px-4 py-3 [contain:content] ${registered ? 'bg-brand-50/60 border-l-2 border-brand-500' : 'hover:bg-brand-50'}`}>
       <a
         href={`${tabOrigin}${entry.detailUrl}`}
         target="_blank"
@@ -307,4 +323,4 @@ function LectureCard({ entry, tabOrigin, onShare, registered }: { entry: Normali
       </a>
     </div>
   )
-}
+})
