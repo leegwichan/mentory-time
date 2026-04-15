@@ -5,6 +5,7 @@ import { getDayLabels, getDayName, getWeekStart, toDayIndex, addDays, formatWeek
 import { TIME_ROWS, buildSlots, getSlotEntries, overlapColor } from '../lib/slots'
 import GoogleCalendarButton from './GoogleCalendarButton'
 import NotionButton from './NotionButton'
+import { openHistoryCancelPage } from './cancel'
 
 interface PopoverState {
   dayIndex: number
@@ -269,14 +270,24 @@ export default function TimetableView() {
                         {locationCache[entry.qustnrSn]}
                       </p>
                     )}
-                    <a
-                      href={`${tabOrigin}${entry.detailUrl}`}
-                      target="_blank"
-                      rel="noreferrer"
-                      className="text-[10px] text-brand-600 hover:underline"
-                    >
-                      상세보기 →
-                    </a>
+                    <div className="flex items-center justify-between">
+                      <a
+                        href={`${tabOrigin}${entry.detailUrl}`}
+                        target="_blank"
+                        rel="noreferrer"
+                        className="text-[10px] text-brand-600 hover:underline"
+                      >
+                        상세보기 →
+                      </a>
+                      {entry.status === '접수완료' && (
+                        <button
+                          onClick={() => openHistoryCancelPage(entry, entries, tabOrigin)}
+                          className="text-[10px] px-2 py-0.5 rounded-full border border-red-300 text-red-500 bg-red-50 hover:bg-red-100 hover:border-red-400 font-medium transition-colors"
+                        >
+                          접수 취소
+                        </button>
+                      )}
+                    </div>
                   </div>
                 ))}
               </div>
