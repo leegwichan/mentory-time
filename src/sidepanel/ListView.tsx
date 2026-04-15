@@ -172,7 +172,7 @@ export default function ListView() {
     .filter((e) => !hideCancel || e.status === '접수완료')
   const groups = groupByDate(filtered)
 
-  const recentEntries = getRecentEntries(entries, recentHours)
+  const recentEntries = getRecentEntries(filtered, recentHours)
 
   return (
     <div className="h-full flex flex-col overflow-hidden">
