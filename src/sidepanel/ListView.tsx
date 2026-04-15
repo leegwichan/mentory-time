@@ -109,10 +109,10 @@ export default function ListView() {
         <button
           onClick={fetchAll}
           disabled={loading}
-          className="ml-auto text-[10px] px-2 py-0.5 rounded-full border bg-gray-50 text-gray-600 border-gray-300 hover:border-gray-400 hover:text-gray-800 disabled:opacity-40 disabled:cursor-default"
-          title="접수 목록/시간표 새로고침"
+          className="ml-auto w-7 h-7 flex items-center justify-center rounded hover:bg-gray-100 disabled:opacity-30 disabled:cursor-default text-gray-500"
+          title="접수 목록 새로고침"
         >
-          목록/시간표 새로고침
+          ↻
         </button>
       </div>
 
