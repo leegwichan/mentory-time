@@ -283,7 +283,7 @@ export default function AllLecturesView() {
 
 const LectureCard = memo(function LectureCard({ entry, tabOrigin, onShare, registered }: { entry: NormalizedListEntry; tabOrigin: string; onShare: (entry: NormalizedListEntry) => void; registered: boolean }) {
   return (
-    <div className={`px-4 py-3 [contain:content] ${registered ? 'bg-brand-50/60 border-l-2 border-brand-500' : 'hover:bg-brand-50'}`}>
+    <div className={`px-4 py-3 [contain:content] ${registered ? 'bg-green-50 border-l-2 border-green-600' : 'hover:bg-brand-50'}`}>
       <a
         href={`${tabOrigin}${entry.detailUrl}`}
         target="_blank"
