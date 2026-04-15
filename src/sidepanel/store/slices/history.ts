@@ -8,7 +8,7 @@ import {
 } from "../../../lib/parser";
 import { saveEntries } from "../../../lib/storage";
 import type { NormalizedEntry, DetailInfo } from "../../../lib/types";
-import { getTabOrigin, fetchDoc } from "../tab-helper";
+import { getTabOrigin, fetchDoc, findTab } from "../tab-helper";
 import type { StoreState } from "../index";
 
 const HISTORY_PATH =
@@ -26,6 +26,10 @@ export interface HistorySlice {
   locationCache: Record<string, string>;
   toggleHideCancel: () => void;
   fetchAll: () => Promise<void>;
+  cancelRegistration: (
+    cancelId: string,
+    qustnrSn: string,
+  ) => Promise<{ success: boolean; message: string }>;
   setPendingDetail: (qustnrSn: string | null) => void;
   clearPreview: () => void;
   activatePreview: (qustnrSn: string) => Promise<boolean>;
@@ -49,6 +53,52 @@ export const createHistorySlice: StateCreator<
   locationCache: {},
 
   toggleHideCancel: () => set((s) => ({ hideCancel: !s.hideCancel })),
+
+  cancelRegistration: async (cancelId, qustnrSn) => {
+    try {
+      const { tabId } = await findTab();
+      const origin = await getTabOrigin();
+      const result = await chrome.scripting.executeScript({
+        target: { tabId },
+        world: "MAIN",
+        func: async (url: string, body: string) => {
+          const res = await fetch(url, {
+            method: "POST",
+            headers: {
+              "Content-Type":
+                "application/x-www-form-urlencoded; charset=UTF-8",
+              "X-Requested-With": "XMLHttpRequest",
+            },
+            credentials: "same-origin",
+            body,
+          });
+          return res.json();
+        },
+        args: [
+          `${origin}/sw/mypage/userAnswer/cancel.json`,
+          `id=${cancelId}&qustnrSn=${qustnrSn}&gubun=mentoLec`,
+        ],
+      });
+      const data = result[0]?.result as
+        | { resultCode?: string; cancelAt?: string }
+        | undefined;
+      if (data?.resultCode === "success") {
+        if (data.cancelAt === "Y") {
+          // 목록 자동 갱신
+          await get().fetchAll();
+          return { success: true, message: "접수를 취소했습니다." };
+        }
+        return {
+          success: false,
+          message: "강의날짜 하루 전날부터는 취소가 불가능합니다.",
+        };
+      }
+      return { success: false, message: "취소에 실패했습니다." };
+    } catch {
+      return { success: false, message: "취소 중 오류가 발생했습니다." };
+    }
+  },
+
   setPendingDetail: (qustnrSn) => set({ pendingQustnrSn: qustnrSn }),
   clearPreview: () => set({ previewEntry: null }),
 

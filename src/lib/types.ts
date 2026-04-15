@@ -11,6 +11,7 @@ export interface LectureEntry {
   registDate: string; // "2026-04-07"
   status: "접수완료" | "접수취소";
   approval: string;
+  cancelId: string | null; // delDate 첫 번째 인자, null이면 취소 불가
 }
 
 export interface NormalizedEntry extends LectureEntry {

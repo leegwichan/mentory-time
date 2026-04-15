@@ -32,11 +32,23 @@ export const useStore = create<StoreState>()((...a) => ({
     const [set] = a;
     const cached = await loadStorage();
     if (cached) {
-      const entries = cached.entries.map((e) => ({
-        ...e,
-        lectureDateObj: new Date(e.lectureDate),
-      }));
-      set({ entries, lastFetched: cached.lastFetched });
+      // cancelId 필드가 없는 구버전 캐시면 무효화 (자동 re-fetch 유도)
+      const needsMigration =
+        cached.entries.length > 0 && !("cancelId" in cached.entries[0]);
+      if (needsMigration) {
+        await chrome.storage.local.remove([
+          "entries",
+          "lastFetched",
+          "totalPages",
+        ]);
+      } else {
+        const entries = cached.entries.map((e) => ({
+          ...e,
+          lectureDateObj: new Date(e.lectureDate),
+          cancelId: e.cancelId ?? null,
+        }));
+        set({ entries, lastFetched: cached.lastFetched });
+      }
     }
     const cachedLectures = await loadAllLectures();
     if (cachedLectures) {
