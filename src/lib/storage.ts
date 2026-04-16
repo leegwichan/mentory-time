@@ -54,3 +54,24 @@ export async function markAsNotionAdded(qustnrSn: string): Promise<void> {
   set.add(qustnrSn)
   await chrome.storage.local.set({ notionAddedSet: [...set] })
 }
+
+export async function loadGcalAddedSet(): Promise<Set<string>> {
+  const result = await chrome.storage.local.get('gcalAddedSet')
+  const arr = (result['gcalAddedSet'] as string[] | undefined) ?? []
+  return new Set(arr)
+}
+
+export async function markAsGcalAdded(qustnrSn: string): Promise<void> {
+  const set = await loadGcalAddedSet()
+  set.add(qustnrSn)
+  await chrome.storage.local.set({ gcalAddedSet: [...set] })
+}
+
+export async function loadGcalConnected(): Promise<boolean> {
+  const result = await chrome.storage.local.get('gcalConnected')
+  return (result['gcalConnected'] as boolean) ?? false
+}
+
+export async function saveGcalConnected(connected: boolean): Promise<void> {
+  await chrome.storage.local.set({ gcalConnected: connected })
+}

@@ -1,8 +1,9 @@
 import { create } from 'zustand'
 import { parseHistoryPage, parseTotalPages, normalizeEntry, parseDetailPage, isLoginPage } from '../lib/parser'
-import { saveEntries, loadStorage, updateSettings, loadSettings, loadNotionSettings, saveNotionSettings as persistNotionSettings, loadNotionAddedSet, markAsNotionAdded, clearNotionData as clearNotionStorage } from '../lib/storage'
+import { saveEntries, loadStorage, updateSettings, loadSettings, loadNotionSettings, saveNotionSettings as persistNotionSettings, loadNotionAddedSet, markAsNotionAdded, clearNotionData as clearNotionStorage, loadGcalAddedSet, markAsGcalAdded as persistGcalAdded, loadGcalConnected, saveGcalConnected } from '../lib/storage'
 import { createNotionPage, NotionApiError } from '../lib/notion'
-import type { NormalizedEntry, DetailInfo, NotionSettings } from '../lib/types'
+import { getGcalToken, fetchGcalEvents as apiFetchGcalEvents, revokeGcalToken } from '../lib/gcal'
+import type { NormalizedEntry, DetailInfo, NotionSettings, GcalEvent } from '../lib/types'
 import type { WeekStartDay } from '../lib/week'
 
 const HISTORY_PATH = '/sw/mypage/userAnswer/history.do?menuNo=200047&pageIndex='
@@ -31,6 +32,8 @@ interface StoreState {
   activatePreview: (qustnrSn: string) => Promise<boolean>
   /** 상세 페이지에서 장소 정보를 fetch해 locationCache에 저장 (이미 있으면 skip) */
   fetchLocation: (qustnrSn: string) => Promise<void>
+  gcalAddedSet: Set<string>
+  markGcalAdded: (qustnrSn: string) => Promise<void>
   notionSettings: NotionSettings | null
   notionAddedSet: Set<string>
   notionBusy: string | null
@@ -39,6 +42,16 @@ interface StoreState {
   saveNotionSettings: (settings: NotionSettings) => Promise<void>
   clearNotionData: () => Promise<void>
   addToNotion: (entry: NormalizedEntry) => Promise<void>
+  gcalConnected: boolean
+  gcalEvents: GcalEvent[]
+  gcalOverlay: boolean
+  gcalLoading: boolean
+  gcalError: string | null
+  loadGcalState: () => Promise<void>
+  connectGcal: () => Promise<void>
+  disconnectGcal: () => Promise<void>
+  toggleGcalOverlay: () => void
+  fetchGcalEvents: (weekStart: Date) => Promise<void>
 }
 
 export const useStore = create<StoreState>((set, get) => ({
@@ -54,6 +67,15 @@ export const useStore = create<StoreState>((set, get) => ({
   previewEntry: null,
   tabOrigin: 'https://www.swmaestro.ai',
   locationCache: {},
+  gcalAddedSet: new Set<string>(),
+  markGcalAdded: async (qustnrSn) => {
+    await persistGcalAdded(qustnrSn)
+    set((s) => {
+      const next = new Set(s.gcalAddedSet)
+      next.add(qustnrSn)
+      return { gcalAddedSet: next }
+    })
+  },
   notionSettings: null,
   notionAddedSet: new Set<string>(),
   notionBusy: null,
@@ -102,6 +124,72 @@ export const useStore = create<StoreState>((set, get) => ({
     }
   },
 
+  gcalConnected: false,
+  gcalEvents: [],
+  gcalOverlay: false,
+  gcalLoading: false,
+  gcalError: null,
+
+  loadGcalState: async () => {
+    const connected = await loadGcalConnected()
+    set({ gcalConnected: connected })
+  },
+
+  connectGcal: async () => {
+    set({ gcalError: null })
+    try {
+      await getGcalToken(true)
+      await saveGcalConnected(true)
+      set({ gcalConnected: true })
+    } catch (e) {
+      const msg = e instanceof Error ? e.message : '구글 캘린더 연동에 실패했습니다.'
+      set({ gcalError: msg })
+    }
+  },
+
+  disconnectGcal: async () => {
+    await revokeGcalToken()
+    await saveGcalConnected(false)
+    set({ gcalConnected: false, gcalEvents: [], gcalOverlay: false, gcalError: null })
+  },
+
+  toggleGcalOverlay: () => {
+    set((s) => ({ gcalOverlay: !s.gcalOverlay }))
+  },
+
+  fetchGcalEvents: async (weekStart) => {
+    if (!get().gcalConnected) return
+    set({ gcalLoading: true, gcalError: null })
+    try {
+      let token: string
+      try {
+        token = await getGcalToken(false)
+      } catch {
+        set({ gcalLoading: false, gcalError: '구글 캘린더 인증이 만료되었습니다. 설정에서 다시 연동해주세요.', gcalConnected: false })
+        await saveGcalConnected(false)
+        return
+      }
+      const weekEnd = new Date(weekStart)
+      weekEnd.setDate(weekEnd.getDate() + 7)
+      try {
+        const events = await apiFetchGcalEvents(token, weekStart, weekEnd)
+        set({ gcalEvents: events, gcalLoading: false })
+      } catch (e) {
+        if (e instanceof Error && e.message === 'TOKEN_EXPIRED') {
+          // 토큰 만료 후 재시도
+          const newToken = await getGcalToken(false)
+          const events = await apiFetchGcalEvents(newToken, weekStart, weekEnd)
+          set({ gcalEvents: events, gcalLoading: false })
+        } else {
+          throw e
+        }
+      }
+    } catch (e) {
+      const msg = e instanceof Error ? e.message : '구글 캘린더 이벤트를 불러오지 못했습니다.'
+      set({ gcalLoading: false, gcalError: msg })
+    }
+  },
+
   loadNotionState: async () => {
     const [ns, addedSet] = await Promise.all([loadNotionSettings(), loadNotionAddedSet()])
     set({ notionSettings: ns, notionAddedSet: addedSet })
@@ -141,8 +229,8 @@ export const useStore = create<StoreState>((set, get) => ({
   },
 
   loadCache: async () => {
-    const [cached, settings] = await Promise.all([loadStorage(), loadSettings()])
-    set({ hideCancel: settings.hideCancel, weekStartDay: settings.weekStartDay, recentHours: settings.recentHours })
+    const [cached, settings, gcalAdded] = await Promise.all([loadStorage(), loadSettings(), loadGcalAddedSet()])
+    set({ hideCancel: settings.hideCancel, weekStartDay: settings.weekStartDay, recentHours: settings.recentHours, gcalAddedSet: gcalAdded })
     if (cached) {
       const entries = cached.entries.map((e) => ({
         ...e,
